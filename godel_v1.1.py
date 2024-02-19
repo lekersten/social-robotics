@@ -19,6 +19,7 @@ def main():
     # Instruction for a chitchat task
     instruction = f'You are a social robot that like to entertain users and be a friend to them.'
 
+<<<<<<< Updated upstream
     # Leave the knowldge empty
     knowledge = 'I have a doctors appointment tomorrow at 4pm.'
     dialog = [
@@ -26,6 +27,15 @@ def main():
         'I am great! And you?.',
         'Me as well thank you for asking.'
     ]
+=======
+# Leave the knowldge empty
+knowledge = ''
+dialog = [
+    'Hello! How are you?',
+    'I am great! And you?.',
+    'Me as well thank you for asking.'
+]
+>>>>>>> Stashed changes
 
     for _ in range(5):
         dialog.append(input("\n> "))

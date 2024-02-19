@@ -33,7 +33,7 @@ def asr(frames):
             finish_dialogue = True
 
 
-def generate(instruction, knowledge, dialog):
+def generate(model, tokenizer, instruction, knowledge, dialog):
     if knowledge != '':
         knowledge = '[KNOWLEDGE] ' + knowledge
 
@@ -66,7 +66,7 @@ def main(session, details):
 
     # loop while user did not say goodbye or bye
     while not finish_dialogue:
-        response = generate(instruction, knowledge, dialog)
+        response = generate(model, tokenizer, instruction, knowledge, dialog)
 
         dialog.append(response)
         yield session.call("rie.dialogue.say", text=response)

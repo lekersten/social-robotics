@@ -14,12 +14,12 @@ def initial_model():
 
     instruction = f'You are a social robot that like to entertain users and be a friend to them.'
 
-    openings = ["Hello! How are you?", "Hi! How's it going?", "Hey! What's up?", "Hello"]
+    greetings = ["Hello! How are you?", "Hi! How's it going?", "Hey! What's up?", "Hello"]
 
     knowledge = ''
     dialog = []
 
-    dialog.append(openings[random.randint(0, len(openings) - 1)])
+    dialog.append(greetings[random.randint(0, len(greetings) - 1)])
 
     return model, tokenizer, instruction, knowledge, dialog
 
@@ -75,7 +75,9 @@ def main(session, details):
 
     yield session.call("rie.dialogue.stt.close")
 
-    yield session.call("rie.dialogue.say", text="Goodbye! It was nice talking to you.")
+    farewells = ["Goodbye! It was nice talking to you.", "Bye! See you later.", "Goodbye! Have a great day!"]
+    yield session.call("rie.dialogue.say", text=farewells[random.randint(0, len(farewells) - 1)])
+    
     session.leave()
 
 wamp = Component(

@@ -14,22 +14,29 @@ def initial_model():
 
     instruction = f'You are a social robot that like to entertain users and be a friend to them.'
 
-    greetings = ["Hello! How are you?", "Hi! How's it going?", "Hey! What's up?", "Hello"]
-
     knowledge = ''
     dialog = []
 
-    dialog.append(greetings[random.randint(0, len(greetings) - 1)])
+    greetings = ["Hello!", "Hi!", "Hey!", "Good Morning!", "Good Afternoon!", " "]
+    introduces = ["I'm a social robot.", "I'm Alphie", " "]
+    welcomes = ["Nice to meet you!", " Let's have a chat!", "I'm here to entertain you!", "What do you want to talk about?", "What's up?", "I'm here to be your friend.", "I'm here to talk to you.", "I'm here to keep you company.", " "]
+
+    intro = greetings[random.randint(0, len(greetings) - 1)] + " " + introduces[random.randint(0, len(introduces) - 1)] + " " + welcomes[random.randint(0, len(welcomes) - 1)]
+
+    dialog.append(intro)
 
     return model, tokenizer, instruction, knowledge, dialog
 
 
 def asr(frames):
     global finish_dialogue
+    
+    exits = ["goodbye", "bye", "exit", "quit", "stop", "end"]
+
     if frames['data']['body']['final']:
         print(frames["data"]["body"]["text"])
-        if frames["data"]["body"]["text"] == "bye" or \
-                frames["data"]["body"]["text"] == "goodbye":
+
+        if frames["data"]["body"]["text"] in exits:
             finish_dialogue = True
 
 
@@ -44,7 +51,6 @@ def generate(model, tokenizer, instruction, knowledge, dialog):
     output = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
     return output
-
 
 
 @inlineCallbacks
@@ -75,9 +81,14 @@ def main(session, details):
 
     yield session.call("rie.dialogue.stt.close")
 
-    farewells = ["Goodbye! It was nice talking to you.", "Bye! See you later.", "Goodbye! Have a great day!"]
-    yield session.call("rie.dialogue.say", text=farewells[random.randint(0, len(farewells) - 1)])
-    
+
+    signoffs = ["Goodbye!", "Bye!", "See you later!", "Take care!"]
+    farewells = ["It was nice talking to you.", "Have a great day!", "I hope to see you soon.", "Enjoy the rest of your day!", " "]
+
+    outro = signoffs[random.randint(0, len(signoffs) - 1)] + " " + farewells[random.randint(0, len(farewells) - 1)]
+
+    yield session.call("rie.dialogue.say", text=outro)
+
     session.leave()
 
 wamp = Component(

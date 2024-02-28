@@ -6,6 +6,9 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 import random
 
+finish_dialogue = False
+finish_response = True
+
 def initial_model():
     model_name = "microsoft/GODEL-v1_1-large-seq2seq"
 
@@ -14,7 +17,7 @@ def initial_model():
 
     instruction = f'You are a social robot that like to entertain users and be a friend to them.'
 
-    knowledge = ''
+    knowledge = 'My name is Alphie.'
     dialog = []
 
     greetings = ["Hello!", "Hi!", "Hey!", "Good Morning!", "Good Afternoon!", " "]
@@ -27,17 +30,6 @@ def initial_model():
 
     return model, tokenizer, instruction, knowledge, dialog
 
-
-def asr(frames):
-    global finish_dialogue
-    
-    exits = ["goodbye", "bye", "exit", "quit", "stop", "end"]
-
-    if frames['data']['body']['final']:
-        print(frames["data"]["body"]["text"])
-
-        if frames["data"]["body"]["text"] in exits:
-            finish_dialogue = True
 
 
 def generate(model, tokenizer, instruction, knowledge, dialog):
@@ -55,32 +47,55 @@ def generate(model, tokenizer, instruction, knowledge, dialog):
 
 @inlineCallbacks
 def main(session, details):
+    
     model, tokenizer, instruction, knowledge, dialog = initial_model()
-    finish_dialogue = False
 
     yield session.call("rie.dialogue.config.language", lang="en")
-
-    yield session.call("rie.dialogue.say_animated", text=dialog[0])
+    yield session.call("rie.dialogue.say_animated", text=dialog[-1])
 
     text = yield session.call("rie.dialogue.stt.read")
-    print("I heard ",text)
 
-    dialog.append(text)
+
+    @inlineCallbacks
+    def asr(frames):
+        global finish_dialogue
+        global finish_response
+
+        exits = ["goodbye", "bye", "exit", "quit", "stop", "end"]
+
+        if frames['data']['body']['final']:
+            print("ASR:", frames["data"]["body"]["text"])
+            text = frames["data"]["body"]["text"]
+            if text != "" and finish_response:
+                finish_response = False
+                dialog.append(text)
+                print("Dialog: ", dialog)
+
+                response = generate(model, tokenizer, instruction, knowledge, dialog)
+                    
+                print("Response: ", response)
+                print()
+                dialog.append(response)
+                print("Dialog: ", dialog)
+                print()
+
+                yield session.call("rie.dialogue.say_animated", text=response)
+                finish_response = True
+            
+            yield sleep(15)
+
+            if frames["data"]["body"]["text"] in exits:
+                finish_dialogue = True
+
 
     yield session.subscribe(asr, "rie.dialogue.stt.stream")
     yield session.call("rie.dialogue.stt.stream")
 
     # loop while user did not say goodbye or bye
     while not finish_dialogue:
-        response = generate(model, tokenizer, instruction, knowledge, dialog)
-
-        dialog.append(response)
-        yield session.call("rie.dialogue.say_animated", text=response)
-       
         yield sleep(0.5)
 
     yield session.call("rie.dialogue.stt.close")
-
 
     signoffs = ["Goodbye!", "Bye!", "See you later!", "Take care!"]
     farewells = ["It was nice talking to you.", "Have a great day!", "I hope to see you soon.", "Enjoy the rest of your day!", " "]
@@ -98,7 +113,7 @@ wamp = Component(
         "max_retries": 0
     }],
 
-    realm="rie.65d35051ead719a540fad216",
+    realm="rie.65df1f2aead719a540fb0b7d",
 )
 
 wamp.on_join(main)

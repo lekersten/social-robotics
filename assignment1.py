@@ -60,7 +60,7 @@ def main(session, details):
 
     yield session.call("rie.dialogue.config.language", lang="en")
 
-    yield session.call("rie.dialogue.say", text=dialog[0])
+    yield session.call("rie.dialogue.say_animated", text=dialog[0])
 
     text = yield session.call("rie.dialogue.stt.read")
     print("I heard ",text)
@@ -75,7 +75,7 @@ def main(session, details):
         response = generate(model, tokenizer, instruction, knowledge, dialog)
 
         dialog.append(response)
-        yield session.call("rie.dialogue.say", text=response)
+        yield session.call("rie.dialogue.say_animated", text=response)
        
         yield sleep(0.5)
 
@@ -87,7 +87,7 @@ def main(session, details):
 
     outro = signoffs[random.randint(0, len(signoffs) - 1)] + " " + farewells[random.randint(0, len(farewells) - 1)]
 
-    yield session.call("rie.dialogue.say", text=outro)
+    yield session.call("rie.dialogue.say_animated", text=outro)
 
     session.leave()
 

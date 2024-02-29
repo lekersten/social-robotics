@@ -15,7 +15,8 @@ def initial_model():
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
-    instruction = f'You are a social robot that like to entertain users and be a friend to them.'
+    # instruction = f'You are a social robot that like to entertain users and be a friend to them.'
+    instruction = f'Given a dialog context, you need to respond empathically and easily understandable.'
 
     knowledge = 'My name is Alphie.'
     dialog = []

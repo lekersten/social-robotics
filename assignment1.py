@@ -16,12 +16,12 @@ def initial_model():
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
     # instruction = f'You are a social robot that like to entertain users and be a friend to them.'
-    instruction = f'Given a dialog context, you need to respond empathically and easily understandable.'
+    instruction = f'Given a dialog context, you need to respond optimistically, friendly, empathically and easily understandable.'
 
     knowledge = 'My name is Alphie.'
     dialog = []
 
-    greetings = ["Hello!", "Hi!", "Hey!", "Good Morning!", "Good Afternoon!", " "]
+    greetings = ["Hello!", "Hi!", "Hey!", "Good Morning!", "Good Afternoon!"]
     introduces = ["I'm a social robot.", "I'm Alphie", " "]
     welcomes = ["Nice to meet you!", " Let's have a chat!", "I'm here to entertain you!", "What do you want to talk about?", "What's up?", "I'm here to be your friend.", "I'm here to talk to you.", "I'm here to keep you company.", " "]
 

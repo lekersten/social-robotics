@@ -28,13 +28,18 @@ welcomes = ["Nice to meet you!", " Let's have a chat!", "I'm here to entertain y
 
 intro = greetings[random.randint(0, len(greetings) - 1)] + " " + introduces[random.randint(0, len(introduces) - 1)] + " " + welcomes[random.randint(0, len(welcomes) - 1)]
 
+print("\nWelcome!")
+print("You are about to have a conversation with a social robot.")
+print("To end the conversation, type 'goodbye', 'bye', 'exit', 'quit', 'stop', or 'end'.")
+print()
+
 dialog.append(intro)
-print(intro)
+print("Alphie: " + intro)
 
 exits = ["goodbye", "bye", "exit", "quit", "stop", "end"]
 
-for _ in range(15):
-    dialog.append(input("\n> "))
+for _ in range(20):
+    dialog.append(input("\nYou: "))
 
 
     if dialog[-1] in exits:
@@ -43,7 +48,7 @@ for _ in range(15):
 
         outro = signoffs[random.randint(0, len(signoffs) - 1)] + " " + farewells[random.randint(0, len(farewells) - 1)]
 
-        print(outro)
+        print("Alphie: " + outro)
 
         break
 
@@ -51,6 +56,6 @@ for _ in range(15):
 
     dialog.append(response)
 
-    print(response)
+    print("Alphie: " + response)
     print()
     

@@ -69,32 +69,32 @@ def main(session, details):
             print("ASR:", frames["data"]["body"]["text"])
             text = frames["data"]["body"]["text"]
 
-            dialog.append(text)
-            print("Dialog: ", dialog)
-
-            # generate response
-            response = generate(model, tokenizer, instruction, knowledge, dialog)
-                
-            print("Response: ", response)
-            print()
-
-            dialog.append(response)
-
-            print("Dialog: ", dialog)
-            print()
-
-            # close stt stream and say response
-            yield session.call("rie.dialogue.stt.close")
-            yield session.call("rie.dialogue.say_animated", text=response)
-            
-            # reopen SST stream
-            yield sleep(15)
-            yield session.call("rie.dialogue.stt.stream")
-
             # check if user wants to exit
-            if frames["data"]["body"]["text"] in exits:
+            if text in exits:
                 finish_dialogue = True
+            else:
+                # close stt stream
+                yield session.call("rie.dialogue.stt.close")
 
+                dialog.append(text)
+                print("Dialog: ", dialog)
+
+                # generate response
+                response = generate(model, tokenizer, instruction, knowledge, dialog)
+
+                print("Response: ", response)
+                print()
+
+                dialog.append(response)
+
+                print("Dialog: ", dialog)
+                print()
+
+                yield session.call("rie.dialogue.say_animated", text=response)
+
+                # reopen SST stream
+                yield sleep(15)
+                yield session.call("rie.dialogue.stt.stream")
 
     yield session.subscribe(asr, "rie.dialogue.stt.stream")
     yield session.call("rie.dialogue.stt.stream")

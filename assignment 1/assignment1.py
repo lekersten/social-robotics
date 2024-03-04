@@ -7,21 +7,20 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import random
 
 finish_dialogue = False
+finish_response = True
 
-# initialize LLM and generate intro 
 def initial_model():
     model_name = "microsoft/GODEL-v1_1-large-seq2seq"
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
-    # instruction = f'You are a social robot that like to entertain users and be a friend to them.'
-    instruction = f'Given a dialog context, you need to respond happily, friendly, empathically and easily understandable.'
+    instruction = f'You are a social robot that like to entertain users and be a friend to them.'
 
-    knowledge = 'My name is Alphie.'
+    knowledge = ''
     dialog = []
 
-    greetings = ["Hello!", "Hi!", "Hey!", "Good Morning!", "Good Afternoon!"]
+    greetings = ["Hello!", "Hi!", "Hey!", "Good Morning!", "Good Afternoon!", " "]
     introduces = ["I'm a social robot.", "I'm Alphie", " "]
     welcomes = ["Nice to meet you!", " Let's have a chat!", "I'm here to entertain you!", "What do you want to talk about?", "What's up?", "I'm here to be your friend.", "I'm here to talk to you.", "I'm here to keep you company.", " "]
 
@@ -32,7 +31,7 @@ def initial_model():
     return model, tokenizer, instruction, knowledge, dialog
 
 
-# generate response for user input
+
 def generate(model, tokenizer, instruction, knowledge, dialog):
     if knowledge != '':
         knowledge = '[KNOWLEDGE] ' + knowledge
@@ -51,44 +50,40 @@ def main(session, details):
     
     model, tokenizer, instruction, knowledge, dialog = initial_model()
 
-    # say intro
     yield session.call("rie.dialogue.config.language", lang="en")
     yield session.call("rie.dialogue.say_animated", text=dialog[-1])
 
-    # open SST stream
-    yield session.call("rie.dialogue.stt.read")
+    text = yield session.call("rie.dialogue.stt.read")
+
 
     @inlineCallbacks
     def asr(frames):
         global finish_dialogue
+        global finish_response
 
-        # possible user exits
         exits = ["goodbye", "bye", "exit", "quit", "stop", "end"]
 
         if frames['data']['body']['final']:
             print("ASR:", frames["data"]["body"]["text"])
             text = frames["data"]["body"]["text"]
+            if text != "" and finish_response:
+                finish_response = False
+                dialog.append(text)
+                print("Dialog: ", dialog)
 
-            dialog.append(text)
-            print("Dialog: ", dialog)
+                response = generate(model, tokenizer, instruction, knowledge, dialog)
+                    
+                print("Response: ", response)
+                print()
+                dialog.append(response)
+                print("Dialog: ", dialog)
+                print()
 
-            # generate response
-            response = generate(model, tokenizer, instruction, knowledge, dialog)
-                
-            print("Response: ", response)
-            print()
-
-            dialog.append(response)
-
-            print("Dialog: ", dialog)
-            print()
-
-            # say response
-            yield session.call("rie.dialogue.say_animated", text=response)
+                yield session.call("rie.dialogue.say_animated", text=response)
+                finish_response = True
             
             yield sleep(15)
 
-            # check if user wants to exit
             if frames["data"]["body"]["text"] in exits:
                 finish_dialogue = True
 
@@ -100,10 +95,8 @@ def main(session, details):
     while not finish_dialogue:
         yield sleep(0.5)
 
-    # close SST stream
     yield session.call("rie.dialogue.stt.close")
 
-    # generate outro
     signoffs = ["Goodbye!", "Bye!", "See you later!", "Take care!"]
     farewells = ["It was nice talking to you.", "Have a great day!", "I hope to see you soon.", "Enjoy the rest of your day!", " "]
 
@@ -113,7 +106,6 @@ def main(session, details):
 
     session.leave()
 
-
 wamp = Component(
     transports=[{
         "url": "ws://wamp.robotsindeklas.nl",
@@ -121,11 +113,10 @@ wamp = Component(
         "max_retries": 0
     }],
 
-    realm="rie.65df1f2aead719a540fb0b7d",
+    realm="rie.65e5bcf0d9eb6cfb396e4534",
 )
 
 wamp.on_join(main)
-
 
 if __name__ == "__main__":
     run([wamp])

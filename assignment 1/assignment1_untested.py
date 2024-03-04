@@ -18,7 +18,7 @@ def initial_model():
     # instruction = f'You are a social robot that like to entertain users and be a friend to them.'
     instruction = f'Given a dialog context, you need to respond happily, friendly, empathically and easily understandable.'
 
-    knowledge = 'My name is Alphie.'
+    knowledge = ''
     dialog = []
 
     greetings = ["Hello!", "Hi!", "Hey!", "Good Morning!", "Good Afternoon!"]
@@ -74,7 +74,8 @@ def main(session, details):
                 finish_dialogue = True
             elif not text == "":
                 # close stt stream
-                yield session.call("rie.dialogue.stt.close")
+                session.call("rie.dialogue.stt.close")
+                yield sleep(2)
 
                 dialog.append(text)
                 print("Dialog: ", dialog)
@@ -90,10 +91,11 @@ def main(session, details):
                 print("Dialog: ", dialog)
                 print()
 
+                yield sleep(2)
                 yield session.call("rie.dialogue.say_animated", text=response)
 
                 # reopen SST stream
-                yield sleep(15)
+                yield sleep(2)
                 yield session.call("rie.dialogue.stt.stream")
 
     yield session.subscribe(asr, "rie.dialogue.stt.stream")
@@ -124,7 +126,7 @@ wamp = Component(
         "max_retries": 0
     }],
 
-    realm="rie.65df1f2aead719a540fb0b7d",
+    realm="rie.65e5bcf0d9eb6cfb396e4534",
 )
 
 wamp.on_join(main)

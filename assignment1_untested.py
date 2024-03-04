@@ -72,7 +72,7 @@ def main(session, details):
             # check if user wants to exit
             if text in exits:
                 finish_dialogue = True
-            else:
+            elif not text == "":
                 # close stt stream
                 yield session.call("rie.dialogue.stt.close")
 

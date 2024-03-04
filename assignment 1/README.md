@@ -15,7 +15,7 @@ There are 3 files in the submission:
 - **assignment1_godel.py**: user interaction through the terminal to test implemented LLM
 
 ### Install Requirements
-The requirements to run the code are in the requirements.txt file. 
+The requirements to run the code are in the ```requirements.txt``` file. 
 When running the code for the first time, a HuggingFace model will be downloaded which will take some time.
 Subsequent runs will reuse this download and thus be faster.
 
@@ -23,4 +23,4 @@ Subsequent runs will reuse this download and thus be faster.
 ```
 python3 assignment1.py
 ```
-! Make sure to change the realm before running the code!
+**Make sure to change the realm before running the code!**

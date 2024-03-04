@@ -11,17 +11,16 @@ We have implemented a verbal interaction through the use of a pre-trained LLM an
 
 There are 3 files in the submission:
 - **assignment1.py**: latest tested version - robot hears itself speak and thus converses with itself
-- **assignment1_untested.py**: untested version - hopefully fixes issue mentioned above
+- **assignment1_close_stream.py**: fixes issue mentioned above, but a bit buggy
 - **assignment1_godel.py**: user interaction through the terminal to test implemented LLM
 
 ### Install Requirements
-```
-conda create social-robotics
-conda activate social-robotics
-pip install -r requirements.txt
-```
+The requirements to run the code are in the requirements.txt file. 
+When running the code for the first time, a HuggingFace model will be downloaded which will take some time.
+Subsequent runs will reuse this download and thus be faster.
 
 ### Running Code 
 ```
-python3 filename.py
+python3 assignment1.py
 ```
+! Make sure to change the realm before running the code!

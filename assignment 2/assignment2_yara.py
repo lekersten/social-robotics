@@ -3,12 +3,15 @@ from twisted.internet.defer import inlineCallbacks
 from autobahn.twisted.util import sleep
 
 
-class StorySentence:
-    def __init__(self, text):
-        self.text = text
-        self.preparation = []
-        self.stroke = []
-        self.post_stroke = []
+head_patted = False
+
+
+def touched(frame):
+    global head_patted
+    if (("body.head.front" in frame["data"] and frame["data"]["body.head.front"]) or
+            ("body.head.middle" in frame["data"] and frame["data"]["body.head.middle"]) or
+            ("body.head.rear" in frame["data"] and frame["data"]["body.head.rear"])):
+        head_patted = True
 
 
 @inlineCallbacks
@@ -41,70 +44,96 @@ def main(session, details):
 
     # # Sad gesture
     # yield sleep(5)
-    # session.call("rie.dialogue.say", text="It makes me very sad that you don't want to hear my story.")
 
     # 'body.arms.right.upper.pitch': {'max': 1.5943951023931953, 'min': -2.5943951023931953, 'type': 'joint'},
     # 'body.arms.right.lower.roll': {'max': 6.46259971647245e-05, 'min': -1.745264625997165, 'type': 'joint'},
     # 'body.torso.yaw': {'max': 0.8726646259971648, 'min': -0.8726646259971648, 'type': 'joint'},
 
-    target_word_time = 5000
-    target_word_duration = 1000
-    prep_time = target_word_time - 2400
-    # preparation
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+
+    t_0 = 1000  # start preparation
+    t_1 = 1500/4  # preparation duration
+    t_2 = 2000/5  # stroke duration
+    t_3 = 1000  # retraction duration
+
+    session.call("rie.dialogue.say", text="It makes me very sad that you don't want to hear my story.")
+
     session.call("rom.actuator.motor.write",
-                 frames=[{"time": prep_time, "data": {"body.torso.yaw": 0}}],
-                 force=True
-                 )
-    session.call("rom.actuator.motor.write",
-                 frames=[
-                     {"time": prep_time+600, "data": {"body.arms.right.upper.pitch": -1, "body.arms.left.upper.pitch": -1}}],
-                 force=True
-                 )
-    session.call("rom.actuator.motor.write",
-                 frames=[
-                     {"time": prep_time+1200, "data": {"body.arms.right.lower.roll": -1.5, "body.arms.left.lower.roll": -1.5}}],
-                 force=True
-                 )
-    session.call("rom.actuator.motor.write",
-                 frames=[{"time": prep_time+1200, "data": {"body.legs.right.upper.pitch": -0.0}},
-                         {"time": prep_time+2400,
-                          "data": {"body.legs.right.upper.pitch": -0.4, "body.legs.left.upper.pitch": -0.4}}],
+                 frames=[{"time": t_0, "data": {"body.torso.yaw": 0}}],
                  force=True
                  )
 
-    # # at start of stroke
+    # preparation
     session.call("rom.actuator.motor.write",
-                 frames=[{"time": target_word_time, "data": {"body.arms.right.upper.pitch": -1.7, "body.arms.left.upper.pitch": -1.7}}],
+                 frames=[{"time": t_1*4, "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5,
+                                                "body.arms.right.lower.roll": -1.5, "body.arms.left.lower.roll": -1.5,
+                                                "body.legs.right.upper.pitch": -0.5,
+                                                "body.legs.left.upper.pitch": -0.5}}],
                  force=True
                  )
-    session.call("rom.actuator.motor.write",
-                 frames=[{"time": target_word_time, "data": {"body.arms.right.lower.roll": -1.5, "body.arms.left.lower.roll": -1.5}}],
-                 force=True
-                 )
-    session.call("rom.actuator.motor.write",
-                 frames=[{"time": target_word_time,
-                          "data": {"body.legs.right.upper.pitch": -0.8, "body.legs.left.upper.pitch": -0.8}}],
-                 force=True
-                 )
+    # session.call("rom.actuator.motor.write",
+    #              frames=[{"time": t_1, "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5}}],
+    #              force=True
+    #              )
+    # session.call("rom.actuator.motor.write",
+    #              frames=[{"time": t_1, "data": {"body.arms.right.lower.roll": -1.5, "body.arms.left.lower.roll": -1.5}}],
+    #              force=True
+    #              )
+    # session.call("rom.actuator.motor.write",
+    #              frames=[{"time": t_1*3,
+    #                       "data": {"body.legs.right.upper.pitch": -0.5, "body.legs.left.upper.pitch": -0.5}}],
+    #              force=True
+    #              )
+
     # during stroke
-    # # TODO: try to move body left/right
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": t_2, "data": {"body.head.pitch": 0.17}}],
+                 force=True
+                 )
+
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": t_2, "data": {"body.head.yaw": 0.5}},
+                         {"time": t_2*2, "data": {"body.head.yaw": -0.5}},
+                         {"time": t_2*3, "data": {"body.head.yaw": 0.5}},
+                         {"time": t_2*4, "data": {"body.head.yaw": -0.5}},
+                         {"time": t_2*5, "data": {"body.head.yaw": 0}}],
+                 force=True
+                 )
+
+    # First wait for user to touch its head
+
+    while not head_patted:
+        sleep(0.5)
+
+    # retraction
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": t_3,
+                          "data": {"body.legs.right.upper.pitch": 0, "body.legs.left.upper.pitch": 0,
+                                   "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0,
+                                   "body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0}}],
+                 force=True
+                 )
+
     # session.call("rom.actuator.motor.write",
-    #              frames=[{"time": 2400, "data": {"body.torso.roll": -0.0}},
-    #                      {"time": 3600, "data": {"body.torso.roll": -0.8}},
-    #                      {"time": 4800, "data": {"body.torso.roll": 0.8}}],
+    #              frames=[{"time": t_3,
+    #                       "data": {"body.legs.right.upper.pitch": 0, "body.legs.left.upper.pitch": 0}}],
     #              force=True
     #              )
     # session.call("rom.actuator.motor.write",
-    #              frames=[{"time": 1200, "data": {"body.head.pitch": 0.17}}],
+    #              frames=[{"time": t_3,
+    #                       "data": {"body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0}}],
     #              force=True
     #              )
-    # # after
     # session.call("rom.actuator.motor.write",
-    #              frames=[{"time": 2400, "data": {"body.head.pitch": 0.17}},
-    #                      {"time": 3600, "data": {"body.head.pitch": 0.0}}],
+    #              frames=[{"time": t_3,
+    #                       "data": {"body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0}}],
     #              force=True
     #              )
+    
+    yield session.call("rie.dialogue.say", text="Thank you!")
+
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+
     session.leave()  # Close the connection with the robot
 
 
@@ -114,7 +143,7 @@ wamp = Component(
         "serializers": ["msgpack"],
         "max_retries": 0
     }],
-    realm="rie.65e5b9c7d9eb6cfb396e4516",
+    realm="rie.65e8774bd9eb6cfb396e553f",
 )
 
 wamp.on_join(main)

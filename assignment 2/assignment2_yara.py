@@ -129,7 +129,7 @@ def main(session, details):
     #                       "data": {"body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0}}],
     #              force=True
     #              )
-    
+
     yield session.call("rie.dialogue.say", text="Thank you!")
 
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")

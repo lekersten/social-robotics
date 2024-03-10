@@ -22,14 +22,14 @@ def main(session, details):
     # combine greeting and beckoning
     yield session.call("rom.actuator.motor.write",
                        frames=[{"time": prep_1, "data": {"body.arms.right.upper.pitch": -2.5}},
-                               {"time": duration_1, "data": {"body.arms.right.lower.roll": 1.5}},
+                               {"time": duration_1*2, "data": {"body.arms.right.lower.roll": 1.5}},
                                {"time": target_1, "data": {"body.arms.right.lower.roll": -1, "body.arms.left.upper.pitch": -0.75}},
-                               {"time": duration_1*3, "data": {"body.arms.right.lower.roll": 1.5, "body.arms.left.lower.roll": -1.7}},
-                               {"time": duration_1*4, "data": {"body.arms.right.lower.roll": -1, "body.arms.left.lower.roll": -1.25}},
-                               {"time": duration_1*5, "data": {"body.arms.right.lower.roll": 1.5, "body.arms.left.lower.roll": -1.7}},
-                               {"time": duration_1*6, "data": {"body.arms.right.lower.roll": -1, "body.arms.left.lower.roll": -1.25}},
-                               {"time": duration_1*7, "data": {"body.arms.right.upper.pitch": 0, "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": -1.7}},
-                               {"time": duration_1*8, "data": {"body.arms.left.lower.roll": -1.25}},
+                               {"time": duration_1*4, "data": {"body.arms.right.lower.roll": 1.5, "body.arms.left.lower.roll": -1.7}},
+                               {"time": duration_1*5, "data": {"body.arms.right.lower.roll": -1, "body.arms.left.lower.roll": -1.25}},
+                               {"time": duration_1*6, "data": {"body.arms.right.lower.roll": 1.5, "body.arms.left.lower.roll": -1.7}},
+                               {"time": duration_1*7, "data": {"body.arms.right.lower.roll": -1, "body.arms.left.lower.roll": -1.25}},
+                               {"time": duration_1*8, "data": {"body.arms.right.upper.pitch": 0, "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": -1.7}},
+                               {"time": duration_1*9, "data": {"body.arms.left.lower.roll": -1.25}},
                                {"time": retract, "data": {"body.arms.left.upper.pitch": 0, "body.arms.left.lower.roll": 0}}],
                        force=True
                        )

@@ -11,6 +11,7 @@ We have implemented an interaction with the social robot which utilizes non-verb
 
 There is 1 files in the submission:
 - **assignment2.py** - two paths: listen to story or upset robot
+- **2 Aruco Cards:** ID 0 = YES, ID 1 = NO
 
 ### Install Requirements
 The requirements to run the code are in the ```requirements.txt``` file. 

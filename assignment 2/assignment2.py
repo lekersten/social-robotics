@@ -1,54 +1,179 @@
 from autobahn.twisted.component import Component, run
 from twisted.internet.defer import inlineCallbacks
+from autobahn.twisted.util import sleep
+
+head_patted = False
 
 
-class StorySentence:
-    def __init__(self, text):
-        self.text = text
-        self.preparation = []
-        self.stroke = []
-        self.post_stroke = []
-
+def touched(frame):
+    global head_patted
+    if (("body.head.front" in frame["data"] and frame["data"]["body.head.front"]) or
+            ("body.head.middle" in frame["data"] and frame["data"]["body.head.middle"]) or
+            ("body.head.rear" in frame["data"] and frame["data"]["body.head.rear"])):
+        print("The head was touched!")
+        head_patted = True
 
 @inlineCallbacks
-def test_movement(session, details):
+def say_upset_sentence(session, details):
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
-    # info = yield session.call("rom.actuator.motor.info")
-    # print(info)
-    yield session.call("rom.actuator.motor.write",
-                       frames=[{"time": 400, "data": {"body.head.pitch": 0.1}},
-                               {"time": 1200, "data": {"body.head.pitch": -0.1}},
-                               {"time": 2000, "data": {"body.head.pitch": 0.1}},
-                               {"time": 2400, "data": {"body.head.pitch": 0.0}}],
-                       force=True
-                       )
-    # yield session.call("rom.optional.behavior.play", name="BlocklySitDown")
-    yield session.call("rom.optional.behavior.play", name="BlocklyArmsUp")
-    session.leave()  # Close the connection with the robot
 
+    t_0 = 1  # wait before start preparation
+    t_1 = 1500  # preparation duration
+    t_2 = 2000 / 5  # stroke duration
+    t_3 = 1000  # retraction duration
 
-@inlineCallbacks
-def talk_with_movement(session, details, storySentence):
-    # Maybe use say animated somewhere? (for sentences without movement?)
-    yield session.call("rie.dialogue.say", text="I am talking talking talking.")
+    session.call("rie.dialogue.say", text="It makes me very upset that you don't want to hear my story.")
+
+    sleep(t_0)
+
+    # preparation
     session.call("rom.actuator.motor.write",
-                 frames=[{"time": 400, "data": {"body.head.pitch": 0.1}},
-                         {"time": 1200, "data": {"body.head.pitch": -0.1}},
-                         {"time": 2000, "data": {"body.head.pitch": 0.1}},
-                         {"time": 2400, "data": {"body.head.pitch": 0.0}}],
+                 frames=[
+                     {"time": t_1, "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5,
+                                                "body.arms.right.lower.roll": -1.5, "body.arms.left.lower.roll": -1.5,
+                                                "body.legs.right.upper.pitch": -0.5,
+                                                "body.legs.left.upper.pitch": -0.5}}],
                  force=True
                  )
 
-    # yield session.call("rie.dialogue.say", text=storySentence.text)
-    # session.call("rom.actuator.motor.write",
-    #              frames=storySentence.preparation,
-    #              force=True
-    #              )
+    # during stroke
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": t_2, "data": {"body.head.pitch": 0.17}}],
+                 force=True
+                 )
+
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": t_2, "data": {"body.head.yaw": 0.5}},
+                         {"time": t_2 * 2, "data": {"body.head.yaw": -0.5}},
+                         {"time": t_2 * 3, "data": {"body.head.yaw": 0.5}},
+                         {"time": t_2 * 4, "data": {"body.head.yaw": -0.5}},
+                         {"time": t_2 * 5, "data": {"body.head.yaw": 0}}],
+                 force=True
+                 )
+
+    # First wait for user to touch its head
+    yield session.subscribe(touched, "rom.sensor.touch.stream")
+    yield session.call("rom.sensor.touch.stream")
+
+    while not head_patted:
+        yield sleep(0.5)
+
+    # retraction
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": t_3,
+                          "data": {"body.legs.right.upper.pitch": 0, "body.legs.left.upper.pitch": 0,
+                                   "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0,
+                                   "body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0}}],
+                 force=True
+                 )
+
+    yield session.call("rie.dialogue.say_animated", text="Thank you!")
+
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+
+
+@inlineCallbacks
+def say_big_sentence(session, details):
+    # After preparation (have arms close to chest, maybe lower body somehow?)
+    session.call("rom.actuator.motor.write",
+                 frames=[
+                     {"time": 1000, "data": {"body.arms.right.upper.pitch": -1.0, "body.arms.left.upper.pitch": -1.0,
+                                             "body.arms.right.lower.roll": -1.7, "body.arms.left.lower.roll": -1.7}}],
+                 force=True
+                 )
+    # During stroke (move arms away from body slightly and up, then move arms outward)
+    yield session.call("rom.actuator.motor.write",
+                       frames=[
+                           {"time": 1000,
+                            "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5,
+                                     "body.arms.right.lower.roll": -1.0, "body.arms.left.lower.roll": -1.0}},
+                           {"time": 2000,
+                            "data": {"body.arms.right.upper.pitch": -2.5, "body.arms.left.upper.pitch": -2.5,
+                                     "body.arms.right.lower.roll": 2.0, "body.arms.left.lower.roll": 3.0}}
+                       ],
+                       force=True
+                       )
+    # After stroke (lower arms down and move back to robot's sides)
+    yield session.call("rom.actuator.motor.write",
+                       frames=[
+                           {"time": 1000, "data": {"body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0,
+                                                   "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0}}],
+                       force=True
+                       )
+
+
+@inlineCallbacks
+def greeting(session, details):
+    prep_1 = 400  # start preparation for greeting
+    target_1 = 1200  # target time for greeting
+    duration_1 = 3600 / 9  # duration of greeting (400ms increments)
+
+    retract = 4000  # retraction
+
+    session.call("rie.dialogue.say", text="Hey you, over there!")
+
+    yield session.call("rom.actuator.motor.write",
+                       frames=[{"time": 600, "data": {"body.arms.right.upper.pitch": -2.5}}],
+                       force=True
+                       )
+
+    yield session.call("rom.actuator.motor.write",
+                       frames=[{"time": 800, "data": {"body.arms.right.lower.roll": 1.5}},
+                               {"time": 1200, "data": {"body.arms.right.lower.roll": -1}},
+                               {"time": 1600, "data": {"body.arms.right.lower.roll": 1.5}},
+                               {"time": 2000, "data": {"body.arms.right.lower.roll": -1}},
+                               {"time": 2400, "data": {"body.arms.right.lower.roll": 1.5}},
+                               {"time": 2800, "data": {"body.arms.right.lower.roll": -1}},
+                               {"time": 3200, "data": {"body.arms.right.lower.roll": 1.5}}],
+                       force=True
+                       )
+
+    session.call("rie.dialogue.say", text="Come closer, I want to ask you something")
+
+    # beckoning wave
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": 400, "data": {"body.arms.left.upper.pitch": -1}}],
+                 force=True
+                 )
+
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": 800, "data": {"body.arms.left.lower.roll": -1.7}},
+                         {"time": 1200, "data": {"body.arms.left.lower.roll": -1}},
+                         {"time": 1600, "data": {"body.arms.left.lower.roll": -1.7}},
+                         {"time": 2000, "data": {"body.arms.left.lower.roll": -1}},
+                         {"time": 2400, "data": {"body.arms.left.lower.roll": -1.7}},
+                         {"time": 2800, "data": {"body.arms.left.lower.roll": -1}}],
+                 force=True
+                 )
 
 
 @inlineCallbacks
 def main(session, details):
-    test_movement(session, details)
+    yield session.call("rie.dialogue.config.language", lang="en")
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+
+    yield greeting(session, details)
+
+    yield sleep(3)
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+
+    yield sleep(1)
+    session.call("rie.dialogue.say", text="Would you like to hear a story?")
+
+    card = yield session.call("rie.vision.card.read")
+    card_id = card[-1]['data']['body'][0][-1]
+    print(card_id, type(card_id))
+
+    if card_id == 0:
+        # Tell story
+        yield say_big_sentence(session, details)
+
+    elif card_id == 1:
+        # upset robot
+        print("Test1")
+        yield say_upset_sentence(session, details)
+
+    yield session.leave()
 
 
 wamp = Component(
@@ -57,7 +182,7 @@ wamp = Component(
         "serializers": ["msgpack"],
         "max_retries": 0
     }],
-    realm="rie.65c375afc01d7b660046e90c",
+    realm="rie.65eedca6d9eb6cfb396e7492",
 )
 
 wamp.on_join(main)

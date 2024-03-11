@@ -148,7 +148,7 @@ def main(session, details):
     #              force=True
     #              )
 
-    yield session.call("rie.dialogue.say", text="Thank you!")
+    yield session.call("rie.dialogue.say_animated", text="Thank you!")
 
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
 

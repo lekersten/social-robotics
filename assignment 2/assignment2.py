@@ -97,10 +97,43 @@ def say_big_sentence(session, details):
     yield session.call("rom.actuator.motor.write",
                        frames=[
                            {"time": 1000, "data": {"body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0,
-                                                   "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0}}],
+                                                   "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0}},
+                           {"time": 1500, "data": {"body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0,
+                                                   "body.arms.right.lower.roll": -1, "body.arms.left.lower.roll": -1}}],
                        force=True
                        )
 
+
+@inlineCallbacks
+def basketball(session, details):
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+    
+    yield session.call("rom.actuator.motor.write",
+                    frames=[{"time": 400, "data": {"body.arms.right.lower.roll": -1.5, "body.arms.left.upper.pitch": .3}},
+                            ],
+                            force=True
+                            )
+
+    yield session.call("rom.actuator.motor.write",
+                    frames=[{"time": 600, "data": {"body.arms.right.upper.pitch": -0.9, "body.arms.right.lower.roll": -.95}},
+                            {"time": 1200, "data": {"body.arms.right.upper.pitch": .2, "body.arms.right.lower.roll": -1}},
+                            {"time": 1800, "data": {"body.arms.right.upper.pitch": -0.9, "body.arms.right.lower.roll": -.85}},
+                            {"time": 2400, "data": {"body.arms.right.upper.pitch": .2, "body.arms.right.lower.roll": -1}},
+                            {"time": 3000, "data": {"body.arms.right.upper.pitch": -0.9, "body.arms.right.lower.roll": -.85}},
+                            ],
+                    force=True
+                    )
+
+    yield session.call("rom.actuator.motor.write",
+                        frames=[{"time": 600, "data": {"body.arms.left.upper.pitch": -1.5, "body.arms.right.upper.pitch": -1.5,
+                                                        "body.arms.left.lower.roll": -1.5, "body.arms.right.lower.roll": -1.5}},
+                                {"time": 1200, "data": {"body.arms.left.upper.pitch": -1.75, "body.arms.right.upper.pitch": -1.75,
+                                                        "body.arms.left.lower.roll": -.5, "body.arms.right.lower.roll": -.5}},
+                                {"time": 2000, "data": {"body.arms.left.upper.pitch": 0, "body.arms.right.upper.pitch": 0,
+                                                        "body.arms.left.lower.roll": -1, "body.arms.right.lower.roll": -1}}
+                                ],
+                                force=True
+                                )
 
 @inlineCallbacks
 def greeting(session, details):
@@ -122,9 +155,7 @@ def greeting(session, details):
                                {"time": 1200, "data": {"body.arms.right.lower.roll": -1}},
                                {"time": 1600, "data": {"body.arms.right.lower.roll": 1.5}},
                                {"time": 2000, "data": {"body.arms.right.lower.roll": -1}},
-                               {"time": 2400, "data": {"body.arms.right.lower.roll": 1.5}},
-                               {"time": 2800, "data": {"body.arms.right.lower.roll": -1}},
-                               {"time": 3200, "data": {"body.arms.right.lower.roll": 1.5}}],
+                               {"time": 2400, "data": {"body.arms.right.lower.roll": 1.5}}],
                        force=True
                        )
 
@@ -154,10 +185,8 @@ def main(session, details):
 
     yield greeting(session, details)
 
-    yield sleep(3)
+    yield sleep(2)
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
-
-    yield sleep(1)
     session.call("rie.dialogue.say", text="Would you like to hear a story?")
 
     card = yield session.call("rie.vision.card.read")
@@ -166,11 +195,11 @@ def main(session, details):
 
     if card_id == 0:
         # Tell story
+        yield basketball(session, details)
         yield say_big_sentence(session, details)
 
     elif card_id == 1:
         # upset robot
-        print("Test1")
         yield say_upset_sentence(session, details)
 
     yield session.leave()
@@ -182,7 +211,7 @@ wamp = Component(
         "serializers": ["msgpack"],
         "max_retries": 0
     }],
-    realm="rie.65eedca6d9eb6cfb396e7492",
+    realm="rie.65eed9c4d9eb6cfb396e7432",
 )
 
 wamp.on_join(main)

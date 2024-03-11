@@ -2,7 +2,6 @@ from autobahn.twisted.component import Component, run
 from twisted.internet.defer import inlineCallbacks
 from autobahn.twisted.util import sleep
 
-
 head_patted = False
 
 
@@ -15,37 +14,73 @@ def touched(frame):
         head_patted = True
 
 
+def say_upset_sentence():
+    pass
+
+
+def say_big_sentence(session, details):
+    # Huge gesture
+    # After preparation (have arms close to chest, maybe lower body somehow?)
+    # During stroke (move arms away from body slightly and up, then move arms outward)
+    # After stroke (lower arms down and move back to robot's sides)
+
+    session.call("rie.dialogue.say", text="My friend has a enormous dog.")
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": 400, "data": {"body.head.pitch": 0.1}},
+                         {"time": 1200, "data": {"body.head.pitch": -0.1}},
+                         {"time": 2000, "data": {"body.head.pitch": 0.1}},
+                         {"time": 2400, "data": {"body.head.pitch": 0.0}}],
+                 force=True
+                 )
+
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+    session.call("rom.actuator.motor.write",
+                 # frames=[{"time": 1200, "data": {"body.head.pitch": 0.17}}], # head down
+                 frames=[{"time": 1200, "data": {"body.arms.right.upper.pitch": -0.7}}],
+                 force=True
+                 )
+    session.call("rom.actuator.motor.write",
+                 # frames=[{"time": 1200, "data": {"body.head.pitch": 0.17}}], # head down
+                 frames=[{"time": 2400, "data": {"body.arms.right.lower.roll": -1.74}}],
+                 force=True
+                 )
+    pass
+
+
 @inlineCallbacks
 def main(session, details):
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
     yield session.call("rie.dialogue.config.language", lang="en")
+
+    # say_big_sentence(session, details)
+
+    # After preparation (have arms close to chest, maybe lower body somehow?)
+    session.call("rom.actuator.motor.write",
+                 frames=[
+                     {"time": 1000, "data": {"body.arms.right.upper.pitch": -1.0, "body.arms.left.upper.pitch": -1.0,
+                                             "body.arms.right.lower.roll": -1.7, "body.arms.left.lower.roll": -1.7}}],
+                 force=True
+                 )
+    # During stroke (move arms away from body slightly and up, then move arms outward)
+    yield session.call("rom.actuator.motor.write",
+                 frames=[
+                     {"time": 1000, "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5,
+                                             "body.arms.right.lower.roll": -1.0, "body.arms.left.lower.roll": -1.0}},
+                     {"time": 2000, "data": {"body.arms.right.upper.pitch": -2.5, "body.arms.left.upper.pitch": -2.5,
+                                             "body.arms.right.lower.roll": 2.0, "body.arms.left.lower.roll": 3.0}}
+                 ],
+                 force=True
+                 )
+    # After stroke (lower arms down and move back to robot's sides)
+    yield session.call("rom.actuator.motor.write",
+                 frames=[
+                     {"time": 1000, "data": {"body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0,
+                                             "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0}}],
+                 force=True
+                 )
+
+    session.leave()  # Close the connection with the robot
     # Maybe use say animated somewhere? (for sentences without movement?)
-
-    # # Huge gesture
-    # # After preparation (have arms close to chest, maybe lower body somehow?)
-    # # During stroke (move arms away from body slightly and up, then move arms outward)
-    # # After stroke (lower arms down and move back to robot's sides)
-
-    # session.call("rie.dialogue.say", text="My friend has a enormous dog.")
-    # session.call("rom.actuator.motor.write",
-    #              frames=[{"time": 400, "data": {"body.head.pitch": 0.1}},
-    #                      {"time": 1200, "data": {"body.head.pitch": -0.1}},
-    #                      {"time": 2000, "data": {"body.head.pitch": 0.1}},
-    #                      {"time": 2400, "data": {"body.head.pitch": 0.0}}],
-    #              force=True
-    #              )
-
-    # yield session.call("rom.optional.behavior.play", name="BlocklyStand")
-    # session.call("rom.actuator.motor.write",
-    #              # frames=[{"time": 1200, "data": {"body.head.pitch": 0.17}}], # head down
-    #              frames=[{"time": 1200, "data": {"body.arms.right.upper.pitch": -0.7}}],
-    #              force=True
-    #              )
-    # session.call("rom.actuator.motor.write",
-    #              # frames=[{"time": 1200, "data": {"body.head.pitch": 0.17}}], # head down
-    #              frames=[{"time": 2400, "data": {"body.arms.right.lower.roll": -1.74}}],
-    #              force=True
-    #              )
 
     # # Sad gesture
     # yield sleep(5)
@@ -57,8 +92,8 @@ def main(session, details):
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
 
     t_0 = 1000  # start preparation
-    t_1 = 1500/4  # preparation duration
-    t_2 = 2000/5  # stroke duration
+    t_1 = 1500 / 4  # preparation duration
+    t_2 = 2000 / 5  # stroke duration
     t_3 = 1000  # retraction duration
 
     session.call("rie.dialogue.say", text="It makes me very sad/upset that you don't want to hear my story.")
@@ -70,7 +105,8 @@ def main(session, details):
 
     # preparation
     session.call("rom.actuator.motor.write",
-                 frames=[{"time": t_1*4, "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5,
+                 frames=[
+                     {"time": t_1 * 4, "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5,
                                                 "body.arms.right.lower.roll": -1.5, "body.arms.left.lower.roll": -1.5,
                                                 "body.legs.right.upper.pitch": -0.5,
                                                 "body.legs.left.upper.pitch": -0.5}}],
@@ -98,10 +134,10 @@ def main(session, details):
 
     session.call("rom.actuator.motor.write",
                  frames=[{"time": t_2, "data": {"body.head.yaw": 0.5}},
-                         {"time": t_2*2, "data": {"body.head.yaw": -0.5}},
-                         {"time": t_2*3, "data": {"body.head.yaw": 0.5}},
-                         {"time": t_2*4, "data": {"body.head.yaw": -0.5}},
-                         {"time": t_2*5, "data": {"body.head.yaw": 0}}],
+                         {"time": t_2 * 2, "data": {"body.head.yaw": -0.5}},
+                         {"time": t_2 * 3, "data": {"body.head.yaw": 0.5}},
+                         {"time": t_2 * 4, "data": {"body.head.yaw": -0.5}},
+                         {"time": t_2 * 5, "data": {"body.head.yaw": 0}}],
                  force=True
                  )
 
@@ -110,7 +146,7 @@ def main(session, details):
     yield session.call("rom.sensor.touch.stream")
 
     while not head_patted:
-        sleep(0.5)
+        yield sleep(0.5)
 
     # retraction
     session.call("rom.actuator.motor.write",
@@ -150,7 +186,7 @@ wamp = Component(
         "serializers": ["msgpack"],
         "max_retries": 0
     }],
-    realm="rie.65e8774bd9eb6cfb396e553f",
+    realm="rie.65eedca6d9eb6cfb396e7492",
 )
 
 wamp.on_join(main)

@@ -11,6 +11,7 @@ def touched(frame):
     if (("body.head.front" in frame["data"] and frame["data"]["body.head.front"]) or
             ("body.head.middle" in frame["data"] and frame["data"]["body.head.middle"]) or
             ("body.head.rear" in frame["data"] and frame["data"]["body.head.rear"])):
+        print("The head was touched!")
         head_patted = True
 
 
@@ -21,6 +22,10 @@ def main(session, details):
     # Maybe use say animated somewhere? (for sentences without movement?)
 
     # # Huge gesture
+    # # After preparation (have arms close to chest, maybe lower body somehow?)
+    # # During stroke (move arms away from body slightly and up, then move arms outward)
+    # # After stroke (lower arms down and move back to robot's sides)
+
     # session.call("rie.dialogue.say", text="My friend has a enormous dog.")
     # session.call("rom.actuator.motor.write",
     #              frames=[{"time": 400, "data": {"body.head.pitch": 0.1}},
@@ -56,7 +61,7 @@ def main(session, details):
     t_2 = 2000/5  # stroke duration
     t_3 = 1000  # retraction duration
 
-    session.call("rie.dialogue.say", text="It makes me very sad that you don't want to hear my story.")
+    session.call("rie.dialogue.say", text="It makes me very sad/upset that you don't want to hear my story.")
 
     session.call("rom.actuator.motor.write",
                  frames=[{"time": t_0, "data": {"body.torso.yaw": 0}}],
@@ -101,6 +106,8 @@ def main(session, details):
                  )
 
     # First wait for user to touch its head
+    yield session.subscribe(touched, "rom.sensor.touch.stream")
+    yield session.call("rom.sensor.touch.stream")
 
     while not head_patted:
         sleep(0.5)

@@ -18,42 +18,8 @@ def say_upset_sentence():
     pass
 
 
-def say_big_sentence(session, details):
-    # Huge gesture
-    # After preparation (have arms close to chest, maybe lower body somehow?)
-    # During stroke (move arms away from body slightly and up, then move arms outward)
-    # After stroke (lower arms down and move back to robot's sides)
-
-    session.call("rie.dialogue.say", text="My friend has a enormous dog.")
-    session.call("rom.actuator.motor.write",
-                 frames=[{"time": 400, "data": {"body.head.pitch": 0.1}},
-                         {"time": 1200, "data": {"body.head.pitch": -0.1}},
-                         {"time": 2000, "data": {"body.head.pitch": 0.1}},
-                         {"time": 2400, "data": {"body.head.pitch": 0.0}}],
-                 force=True
-                 )
-
-    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
-    session.call("rom.actuator.motor.write",
-                 # frames=[{"time": 1200, "data": {"body.head.pitch": 0.17}}], # head down
-                 frames=[{"time": 1200, "data": {"body.arms.right.upper.pitch": -0.7}}],
-                 force=True
-                 )
-    session.call("rom.actuator.motor.write",
-                 # frames=[{"time": 1200, "data": {"body.head.pitch": 0.17}}], # head down
-                 frames=[{"time": 2400, "data": {"body.arms.right.lower.roll": -1.74}}],
-                 force=True
-                 )
-    pass
-
-
 @inlineCallbacks
-def main(session, details):
-    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
-    yield session.call("rie.dialogue.config.language", lang="en")
-
-    # say_big_sentence(session, details)
-
+def say_big_sentence(session, details):
     # After preparation (have arms close to chest, maybe lower body somehow?)
     session.call("rom.actuator.motor.write",
                  frames=[
@@ -63,24 +29,33 @@ def main(session, details):
                  )
     # During stroke (move arms away from body slightly and up, then move arms outward)
     yield session.call("rom.actuator.motor.write",
-                 frames=[
-                     {"time": 1000, "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5,
-                                             "body.arms.right.lower.roll": -1.0, "body.arms.left.lower.roll": -1.0}},
-                     {"time": 2000, "data": {"body.arms.right.upper.pitch": -2.5, "body.arms.left.upper.pitch": -2.5,
-                                             "body.arms.right.lower.roll": 2.0, "body.arms.left.lower.roll": 3.0}}
-                 ],
-                 force=True
-                 )
+                       frames=[
+                           {"time": 1000,
+                            "data": {"body.arms.right.upper.pitch": -1.5, "body.arms.left.upper.pitch": -1.5,
+                                     "body.arms.right.lower.roll": -1.0, "body.arms.left.lower.roll": -1.0}},
+                           {"time": 2000,
+                            "data": {"body.arms.right.upper.pitch": -2.5, "body.arms.left.upper.pitch": -2.5,
+                                     "body.arms.right.lower.roll": 2.0, "body.arms.left.lower.roll": 3.0}}
+                       ],
+                       force=True
+                       )
     # After stroke (lower arms down and move back to robot's sides)
     yield session.call("rom.actuator.motor.write",
-                 frames=[
-                     {"time": 1000, "data": {"body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0,
-                                             "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0}}],
-                 force=True
-                 )
+                       frames=[
+                           {"time": 1000, "data": {"body.arms.right.upper.pitch": 0, "body.arms.left.upper.pitch": 0,
+                                                   "body.arms.right.lower.roll": 0, "body.arms.left.lower.roll": 0}}],
+                       force=True
+                       )
 
-    session.leave()  # Close the connection with the robot
-    # Maybe use say animated somewhere? (for sentences without movement?)
+
+@inlineCallbacks
+def main(session, details):
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+    yield session.call("rie.dialogue.config.language", lang="en")
+
+    yield say_big_sentence(session, details)
+
+    session.leave()
 
     # # Sad gesture
     # yield sleep(5)

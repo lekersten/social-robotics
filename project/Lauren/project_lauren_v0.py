@@ -29,16 +29,19 @@ def ask_feeling(session, details):
         answer = text[-1]['data']['body']['text']
         print("This time I heard ", answer)
 
-    print(answer)
-
-    good = ["good", "great", "okay", "amazing", "fine", "alright", "continue"]
-    tired = ["bad", "stop", "tired", "exhausted", "not good"]
+    good = ["good", "great", "okay", "amazing", "fine", "alright", "continue", "g"]
+    tired = ["bad", "stop", "tired", "exhausted", "not good", "t"]
 
     if answer in good:
         feeling = "good"
 
     elif answer in tired:
         feeling = "tired"
+
+    else:
+        yield session.call("rie.dialogue.say_animated", text="I didn't quite catch that. I will ask again?")
+        feeling = yield ask_feeling(session, details)
+
     
     return feeling
 
@@ -141,14 +144,14 @@ def get_ready_sitting(session, details):
 def do_exercises(session, details, reps):
 
     # sitting exercises
-    yield get_ready_sitting(session, details)
-    yield session.call("rie.dialogue.say", text="Great! Now that we're sitting, let's start with some exercises.")
-    yield sitting_exercises(session, details, reps)
+    # yield get_ready_sitting(session, details)
+    # yield session.call("rie.dialogue.say", text="Great! Now that we're sitting, let's start with some exercises.")
+    # yield sitting_exercises(session, details, reps)
 
     # standing exercises
     yield sleep(2)
     user_feeling = yield ask_feeling(session, details)
-
+    print(user_feeling)
     if user_feeling == "good":
         yield session.call("rie.dialogue.say", text="Great! Then let's continue with some more exercises.")
         yield standing_exercises(session, details, reps)
@@ -163,10 +166,9 @@ def do_exercises(session, details, reps):
     return finished_interaction
     
 
-
 @inlineCallbacks   
 def ask_energy(session, details, reps):
-    question = "How are you feeling today? Are you feeling energetic or a bit tired?"
+    question = "How are you feeling today? Are you feeling good and energetic or a bit tired?"
 
     yield session.call("rie.dialogue.say_animated", text=question)
 
@@ -184,7 +186,7 @@ def ask_energy(session, details, reps):
     tired = ["tired", "exhausted", "not good", "bad"]
 
     if answer in good:
-        yield session.call("rie.dialogue.say_animated", text="That's great to hear! Let's do 5 repeitions for each exercise!")
+        yield session.call("rie.dialogue.say_animated", text="That's great to hear! Let's do 5 repetitions for each exercise!")
         reps = 5
 
     elif answer in tired:

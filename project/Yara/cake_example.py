@@ -85,7 +85,8 @@ def main(session, details):
     # TODO: think of some better way for the user to start this interaction
     #  (not robot continuously trying to talk about it during normal conversation)
     yield session.call("rie.dialogue.keyword.remove", keywords=["yes", "no"])
-    print(session.call("rie.dialogue.keyword.info"))
+    info = yield session.call("rie.dialogue.keyword.info")
+    print(info)
     keyword = "vacation"
     while keyword is None:
         # print("SLEEP")

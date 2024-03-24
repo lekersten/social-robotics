@@ -9,7 +9,7 @@ from nltk.corpus import stopwords
 import spacy
 
 from datetime import datetime
-from database_functions import create_connection, get_all_list_keywords
+from database_functions import create_connection, get_all_list_keywords, get_steps_for_list
 
 # Load English language model for spaCy
 nlp = spacy.load("en_core_web_sm")
@@ -30,7 +30,7 @@ def determine_if_question(statement):
     return is_question[0]["label"] == 'LABEL_1'
 
 
-def extract_topic(question, tokens):
+def extract_topic(curr_question, tokens):
     # Remove stopwords
     stop_words = set(stopwords.words('english'))
     filtered_tokens = [token for token in tokens if token not in stop_words]
@@ -38,8 +38,9 @@ def extract_topic(question, tokens):
     # POS Tagging
     pos_tags = nltk.pos_tag(filtered_tokens)
 
+    # TODO: maybe remove entity part
     # Named Entity Recognition
-    doc = nlp(question)
+    doc = nlp(curr_question)
     entities = [(ent.text, ent.label_) for ent in doc.ents]
 
     # Topic extraction
@@ -75,111 +76,148 @@ def get_specific_question_topic(session, details, keywords):
     while last_sentence == "":
         yield sleep(2)
 
-    yield session.call("rie.dialogue.stt.stream")
+    yield session.call("rie.dialogue.stt.close")
 
     print("Previous sentence:", last_sentence)
-    for word in last_sentence.split(" "):
+    # TODO: make sure whether replace functions are needed
+    for word in last_sentence.replace("?", "").replace(".", "").split(" "):
         for idx, keyword in keywords:
             if word in keyword:
                 return idx
     last_sentence = ""
-    return 0
+    return -1
 
 
 @inlineCallbacks
-def get_question_topic(session, details, topic, list):
-    # TODO: keywords can be in question but not in topics, solve? or ask clarifying question and solve there?
+def get_question_topic(session, details, list_name, list):
     # check what part of the list is asked about
-    keywords = [[x, c] for x, a, b, c in list]
+    print(list)
+    keywords = []
+    for idx in range(len(list)):
+        step = list[idx]
+        keyword = step[2].split(",")
+        keywords.append((idx, keyword))
+    print(keywords)
     for topic in question_topics:
         for idx, keyword in keywords:
             if topic in keyword:
                 return idx
 
-    # TODO: ask whether person wants to talk about the topic
     answers = {"yes": ["yes", "sure", "yeah"], "no": ["no", "nope", "definitely not", "not now"]}
-    answer = yield session.call("rie.dialogue.ask", question="Do you want to talk about " + topic + "?",
+    answer = yield session.call("rie.dialogue.ask", question="Do you want to talk about the " + list_name + "?",
                                 answers=answers)
     print("A: ", answer)
     if answer == "no":
-        return 0
+        return -1
 
     yield session.call("rie.dialogue.say_animated",
-                       text="I'm sorry, I don't know what you want to talk about regarding " + topic + ".")
+                       text="I'm sorry, I don't know what you want to talk about regarding this.")
 
     answer = yield session.call("rie.dialogue.ask", question="Is there something specific that you want to know?",
                                 answers=answers)
     print("A: ", answer)
     if answer == "no":
-        # TODO: make sure to ask about whether want to know everything / all that is done / all that should still be done
-        return -1
+        return -2
 
-    yield session.call("rie.dialogue.say_animated", text="Okay, so what do you want to know?")
+    yield session.call("rie.dialogue.say_animated", text="Okay, so what do you want to know about the " + list_name + "?")
 
     tries = 0
     while tries < 4:
         idx = yield get_specific_question_topic(session, details, keywords)
         print("IDX:", idx)
-        if idx != 0:
+        if idx != -1:
             return idx
         tries += 1
 
         # TODO: need to reopen/close dialogue stream to get response
-        # TODO: ask clarifying question if no list part determined yet (What do you want to know about [topic]?)
-        # TODO: add option for asking about everything that is done or needs to be done
 
-    return 0
+    return -1
+
+
+def order_steps_in_list(list, date):
+    completed, unfinished, early, info = [], [], [], []
+    for step in list:
+        name = step[0]
+        status = step[1]
+        begin_date = step[3]
+        if status == 3:
+            info.append(name)
+        elif status == 1:
+            completed.append(name)
+        elif status == 0:
+            if date < begin_date:
+                early.append(name)
+            else:
+                unfinished.append(name)
+    return completed, unfinished, early, info
 
 
 @inlineCallbacks
-def answer_keyword_question(session, details, keyword, list_id):
+def answer_keyword_question(session, details, list_name, list_id, conn, date):
     global question_topics
-    # TODO: Get list from database (whatever I use for that)
-    if list_id == 1:
-        list = [["Prepare the batter", True], ["Put the cake in the oven", False],
-                ["Take the cake out of the oven", False]]
-    elif list_id == 2:
-        list = [[1, "Pack your bags.", True, ["bag", "bags", "luggage", "suitcase"]],
-                [2, "Print your travel info.", False, ["print"]],
-                [3, "You will leave on the 5th of April", "INFO", ["leave", "april"]]]
-    else:
+    list = get_steps_for_list(conn, list_id)
+    if not list:
         yield session.call("rie.dialogue.say_animated", text="I'm sorry, I don't know anything about this.")
-        return
+        return False
 
-    list_part = yield get_question_topic(session, details, keyword, list)
-    if list_part == 0:  # User doesn't want to talk about this topic
-        return
-    elif list_part == -1:
-        return
-        # TODO: is option to ask about everything/all done/all not done
-        # if len(completed_items) == 0:
-        #     yield session.call("rie.dialogue.say_animated", text="Nothing from this list is done yet. Do you want to start now?")
-        # elif len(completed_items) == len(list):
-        #     yield session.call("rie.dialogue.say_animated", text="Everything is already done for this! Do you want me to repeat every step?")
+    list_part = yield get_question_topic(session, details, list_name, list)
+    if list_part == -1:  # User doesn't want to talk about this topic
+        return False
+    elif list_part == -2:
+        completed, unfinished, early, info = yield order_steps_in_list(list, date)
+        if len(info) == 1:
+            yield session.call("rie.dialogue.say_animated", text="I know that " + info[0] + ".")
+        elif len(info) > 1:
+            yield session.call("rie.dialogue.say_animated", text="I have the following information about the " + list_name + ":")
+            for step in info:
+                yield session.call("rie.dialogue.say_animated", text=step)
+        if len(completed) == 1:
+            yield session.call("rie.dialogue.say_animated", text="You did already " + completed[0] + ".")
+        elif len(completed) > 1:
+            yield session.call("rie.dialogue.say_animated", text="You have already done the following:")
+            for step in completed:
+                yield session.call("rie.dialogue.say_animated", text=step)
+        if len(unfinished) == 1:
+            yield session.call("rie.dialogue.say_animated", text="You could still " + unfinished[0] + ".")
+        elif len(unfinished) > 1:
+            yield session.call("rie.dialogue.say_animated", text="There are some things that you can still do:")
+            for step in unfinished:
+                yield session.call("rie.dialogue.say_animated", text=step)
+        if len(early) == 1:
+            yield session.call("rie.dialogue.say_animated", text="It is a bit too early to " + early[0] + ".")
+        elif len(early) > 1:
+            yield session.call("rie.dialogue.say_animated", text="It's a bit too early to:")
+            for step in early:
+                yield session.call("rie.dialogue.say_animated", text=step)
+        return True
 
     # Focus on the specific part that the question is about
-    question_item = list[list_part-1]
+    question_item = list[list_part]
 
-    if question_item[2] == "INFO":
+    if question_item[1] == 3:
         yield session.call("rie.dialogue.say_animated", text=question_item[1])
-
-    if question_item[2]:
-        yield session.call("rie.dialogue.say_animated", text="You are done with "+question_item[1])
-    else:
-        yield session.call("rie.dialogue.say_animated", text="You could "+question_item[1]+" As it isn't done yet.")
+    elif question_item[1] == 1:
+        yield session.call("rie.dialogue.say_animated", text="You are done with "+question_item[0] + ".")
+    elif question_item[1] == 0:
+        if question_item[3] > date:
+            yield session.call("rie.dialogue.say_animated",
+                               text="It is a bit too early to " + question_item[0] + ". Maybe you can do it later?")
+        else:
+            yield session.call("rie.dialogue.say_animated", text="You could " + question_item[0] + " now. As it isn't done yet.")
 
     # TODO: reset the robot to normal position
+    return True
 
 
 def prepare_keywords(conn, date):
     keyword_list = get_all_list_keywords(conn, date)
     new_list = []
 
-    for id, keywords in keyword_list:
+    for id, name, keywords in keyword_list:
         keywords = keywords.split(",")
-        new_list.append((id, keywords))
+        new_list.append((id, name, keywords))
 
-    print(new_list)
+    print("Current keywords:", new_list)
     return new_list
 
 
@@ -208,10 +246,13 @@ def answer_question(session, details, conn, date):
 
             question_topics, entities = extract_topic(question, tokens)
             question = ""
+            is_answered = False
             for topic in question_topics:
-                for id, keywords in keyword_list:
+                if is_answered:
+                     break
+                for id, name, keywords in keyword_list:
                     if topic in keywords:
-                        yield answer_keyword_question(session, details, topic, id)
+                        is_answered = yield answer_keyword_question(session, details, name, id, conn, date)
                         break
             print("After question part")
 
@@ -226,6 +267,8 @@ def answer_question(session, details, conn, date):
 def main(session, details):
     conn = create_connection(r"db\pythonsqlite.db")
     date = str(datetime.now())[:10]
+    date = "2024-03-28"     # Both vacation and easter visit list
+    date = "2024-03-24"     # Too early to pack bags for vacation
     yield answer_question(session, details, conn, date)
     session.leave()
 

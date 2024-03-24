@@ -23,9 +23,6 @@ question = ""
 question_topics = []
 last_sentence = ""
 
-conn = create_connection(r"db\pythonsqlite.db")
-date = str(datetime.now())[:10]
-
 
 def determine_if_question(statement):
     global classifier
@@ -227,7 +224,9 @@ def answer_question(session, details, conn, date):
 
 @inlineCallbacks
 def main(session, details):
-    yield answer_question(session, details)
+    conn = create_connection(r"db\pythonsqlite.db")
+    date = str(datetime.now())[:10]
+    yield answer_question(session, details, conn, date)
     session.leave()
 
 

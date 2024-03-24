@@ -8,6 +8,9 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import spacy
 
+from datetime import datetime
+from database_functions import create_connection, get_all_list_keywords
+
 # Load English language model for spaCy
 nlp = spacy.load("en_core_web_sm")
 # nltk.download('stopwords')
@@ -20,16 +23,17 @@ question = ""
 question_topics = []
 last_sentence = ""
 
+conn = create_connection(r"db\pythonsqlite.db")
+date = str(datetime.now())[:10]
 
-def determine_question_ml(statement):
+
+def determine_if_question(statement):
     global classifier
     is_question = classifier(statement)
     return is_question[0]["label"] == 'LABEL_1'
 
 
 def extract_topic(question, tokens):
-    global nlp
-
     # Remove stopwords
     stop_words = set(stopwords.words('english'))
     filtered_tokens = [token for token in tokens if token not in stop_words]
@@ -57,7 +61,7 @@ def asr(frames):
         dialogue = frames["data"]["body"]["text"]
         last_sentence = dialogue
         print("dialogue:", dialogue)
-        if question == "" and determine_question_ml(dialogue):
+        if question == "" and determine_if_question(dialogue):
             question = dialogue
 
         if frames["data"]["body"]["text"] == "bye" or \
@@ -131,18 +135,16 @@ def get_question_topic(session, details, topic, list):
 
 
 @inlineCallbacks
-def answer_keyword_question(session, details, keyword):
+def answer_keyword_question(session, details, keyword, list_id):
     global question_topics
     # TODO: Get list from database (whatever I use for that)
-    if keyword == "cake":
+    if list_id == 1:
         list = [["Prepare the batter", True], ["Put the cake in the oven", False],
                 ["Take the cake out of the oven", False]]
-    elif keyword == "vacation":
+    elif list_id == 2:
         list = [[1, "Pack your bags.", True, ["bag", "bags", "luggage", "suitcase"]],
                 [2, "Print your travel info.", False, ["print"]],
                 [3, "You will leave on the 5th of April", "INFO", ["leave", "april"]]]
-    elif keyword == "info":
-        list = [[1, "STEP1", True, ["a", "one", "1"]], [2, "STEP2", False, ["b", "two"]], [3, "INFO1", "INFO", ["c", "three"]]]
     else:
         yield session.call("rie.dialogue.say_animated", text="I'm sorry, I don't know anything about this.")
         return
@@ -172,18 +174,31 @@ def answer_keyword_question(session, details, keyword):
     # TODO: reset the robot to normal position
 
 
+def prepare_keywords(conn, date):
+    keyword_list = get_all_list_keywords(conn, date)
+    new_list = []
+
+    for id, keywords in keyword_list:
+        keywords = keywords.split(",")
+        new_list.append((id, keywords))
+
+    print(new_list)
+    return new_list
+
+
 @inlineCallbacks
-def main(session, details):
+def answer_question(session, details, conn, date):
     global finish_dialogue, question, question_topics
     # set language to English (use 'nl' for Dutch)
     yield session.call("rie.dialogue.config.language", lang="en")
-    # prompt from the robot to the user to say something
-    yield session.call("rie.dialogue.say", text="Robot started!")
 
     # subscribes the asr function with the input stt stream
     yield session.subscribe(asr, "rie.dialogue.stt.stream")
     # calls the stream. From here, the robot prints each 'final' sentence
     yield session.call("rie.dialogue.stt.stream")
+
+    # prepare the keywords
+    keyword_list = yield prepare_keywords(conn, date)
 
     # loop while user did not say goodbye or bye
     while not finish_dialogue:
@@ -194,13 +209,13 @@ def main(session, details):
             print("Start checking question")
             tokens = word_tokenize(question.lower())
 
-            keywords = ["vacation", "info"]
             question_topics, entities = extract_topic(question, tokens)
             question = ""
             for topic in question_topics:
-                if topic in keywords:
-                    yield answer_keyword_question(session, details, topic)
-                    break
+                for id, keywords in keyword_list:
+                    if topic in keywords:
+                        yield answer_keyword_question(session, details, topic, id)
+                        break
             print("After question part")
 
             yield session.call("rie.dialogue.stt.stream")
@@ -208,6 +223,11 @@ def main(session, details):
         yield sleep(0.5)
 
     yield session.call("rie.dialogue.stt.close")
+
+
+@inlineCallbacks
+def main(session, details):
+    yield answer_question(session, details)
     session.leave()
 
 
@@ -217,7 +237,7 @@ wamp = Component(
         "serializers": ["msgpack"],
         "max_retries": 0
     }],
-    realm="rie.65f82fc5a6c4715863c5768b",
+    realm="rie.65fc5b1da6c4715863c58d2a",
 )
 
 wamp.on_join(main)

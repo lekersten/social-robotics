@@ -134,7 +134,7 @@ def get_all_list_keywords(conn, date):
     :return:
     """
     cur = conn.cursor()
-    cur.execute("SELECT id,keywords FROM lists WHERE begin_date<=? AND end_date>=?", (date, date,))
+    cur.execute("SELECT id,name,keywords FROM lists WHERE begin_date<=? AND end_date>=?", (date, date,))
 
     rows = cur.fetchall()
     return rows
@@ -147,6 +147,14 @@ def get_all_current_steps(conn, date):
     cur.execute("SELECT name,priority,end_date FROM steps WHERE status_id=0 AND begin_date<=? AND end_date>=?",
                 (date, date,))
 
+    rows = cur.fetchall()
+    return rows
+
+
+def get_steps_for_list(conn, list_id):
+    cur = conn.cursor()
+    cur.execute("SELECT name,status_id,keywords,begin_date,end_date FROM steps WHERE list_id=?",
+                (list_id,))
     rows = cur.fetchall()
     return rows
 

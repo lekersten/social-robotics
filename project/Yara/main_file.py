@@ -16,8 +16,8 @@ date = str(datetime.now())[:10]
 @inlineCallbacks
 def main(session, details):
     # Can be used to change the date to make sure that there is something in the database
-    global date
-    date = "2024-03-28"
+    # global date
+    # date = "2024-03-28"
 
     # set language to English (use 'nl' for Dutch)
     yield session.call("rie.dialogue.config.language", lang="en")

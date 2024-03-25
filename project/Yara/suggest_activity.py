@@ -9,11 +9,11 @@ def find_highest_priority_activity(current_steps):
     # print(current_steps, type(current_steps[0]))
 
     # First order based on date
-    first_end_date = min([c for a,b,c in current_steps])
-    need_done_first = [(a,b) for a,b,c in current_steps if c == first_end_date]
+    first_end_date = min([c for a, b, c in current_steps])
+    need_done_first = [(a, b) for a, b, c in current_steps if c == first_end_date]
     # Then order based on priority
-    highets_priority = min([b for a,b in need_done_first])
-    chosen_task = [a for a,b in need_done_first if b == highets_priority]
+    highets_priority = min([b for a, b in need_done_first])
+    chosen_task = [a for a, b in need_done_first if b == highets_priority]
     return chosen_task[0]
 
 
@@ -27,9 +27,8 @@ def suggest_activity(session, conn, date):
     answer = yield session.call("rie.dialogue.ask", question="Do you have some free time right now?", answers=answers)
 
     if answer == "yes":
-        # TODO: Find a smart way to choose what to suggest to do right now (Maybe ask how long they have beforehand?)
         task = yield find_highest_priority_activity(current_steps)
-        yield session.call("rie.dialogue.say", text="Maybe you can start to "+task+"?")
+        yield session.call("rie.dialogue.say", text="Maybe you can start to " + task + "?")
     elif answer == "no":
         session.call("rie.dialogue.say", text="Okay, I'll ask again later.")
         yield session.call("rom.optional.behavior.play", name="BlocklyHappy")
@@ -38,6 +37,7 @@ def suggest_activity(session, conn, date):
 
 @inlineCallbacks
 def main(session, details):
+    yield session.call("rie.dialogue.config.language", lang="en")
     from datetime import datetime
     from database_functions import create_connection
 
@@ -55,7 +55,7 @@ wamp = Component(
         "serializers": ["msgpack"],
         "max_retries": 0
     }],
-    realm="rie.65fc5b1da6c4715863c58d2a",
+    realm="rie.66014f75a6c4715863c5a3f4",
 )
 
 wamp.on_join(main)

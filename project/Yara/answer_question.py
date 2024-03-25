@@ -111,7 +111,7 @@ def get_question_topic(session, details, list_name, list):
     # print("A: ", answer)
     if answer == "no":
         return -2
-
+    
     yield session.call("rie.dialogue.say_animated", text="Okay, so what do you want to know about the " + list_name + "?")
 
     tries = 0
@@ -245,7 +245,6 @@ def answer_question(session, details, conn, date):
             tokens = word_tokenize(question.lower())
 
             question_topics = extract_topic(tokens)
-            question = ""
             is_answered = False
             for topic in question_topics:
                 if is_answered:
@@ -254,6 +253,8 @@ def answer_question(session, details, conn, date):
                     if topic in keywords:
                         is_answered = yield answer_keyword_question(session, details, name, id, conn, date)
                         break
+
+            question = ""
 
             if not is_answered:
                 yield session.call("rie.dialogue.say_animated", text="Sorry, I don't know anything about that.")
@@ -268,6 +269,8 @@ def answer_question(session, details, conn, date):
 
 @inlineCallbacks
 def main(session, details):
+    yield session.call("rie.dialogue.config.language", lang="en")
+
     conn = create_connection(r"db\pythonsqlite.db")
     date = str(datetime.now())[:10]
     date = "2024-03-28"     # Both vacation and easter visit list
@@ -283,7 +286,7 @@ wamp = Component(
         "serializers": ["msgpack"],
         "max_retries": 0
     }],
-    realm="rie.66014dc2a6c4715863c5a3eb",
+    realm="rie.66014f75a6c4715863c5a3f4",
 )
 
 wamp.on_join(main)

@@ -11,7 +11,7 @@ from answer_question import answer_question
 from exercise_process import exercises_main
 
 
-conn = create_connection(f"db\pythonsqlite.db")
+conn = create_connection(f"db/pythonsqlite.db")
 date = str(datetime.now())[:10]
 
 
@@ -26,7 +26,7 @@ def main(session, details):
     # prompt from the robot to indicate that it started
     yield session.call("rie.dialogue.say", text="Robot started!")
 
-    # yield exercises_main(session, details)
+    yield exercises_main(session, details)
 
     yield suggest_activity(session, conn, date)
 

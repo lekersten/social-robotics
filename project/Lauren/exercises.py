@@ -30,7 +30,6 @@ def leg_extensions(session, details, reps):
                     )     
 
 
-
 @inlineCallbacks
 def toe_reaches(session, details, reps):
     yield session.call("rie.dialogue.say", text="Now let's reach for our toes. I will show you once and then again we will do the rest together")

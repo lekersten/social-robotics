@@ -215,6 +215,8 @@ def do_exercises(session, details):
 
     # standing exercises
     yield sleep(2)
+    yield get_ready_standing(session, details)
+
     user_feeling = yield ask_feeling(session, details)
     print(user_feeling)
 
@@ -222,7 +224,7 @@ def do_exercises(session, details):
         yield session.call("rie.dialogue.say", text="Great! Then let's continue with some more exercises.")
 
         yield session.call("rie.dialogue.stt.stream")
-        yield get_ready_standing(session, details)
+        
         yield standing_exercises(session, details)
 
         
@@ -230,6 +232,7 @@ def do_exercises(session, details):
         finished_interaction = yield sign_off(session, details)
 
     elif user_feeling == "tired":
+
         yield session.call("rie.dialogue.say", text="I understand, you did great! Maybe next time we can do some more exercises. For now, let's take a break. I'll see you later")
         finished_interaction = True
 
@@ -273,6 +276,7 @@ def ask_energy(session, details):
 
 @inlineCallbacks
 def ask_if_exercises(session, details, exercises, finished_interaction):
+
     question = "Would you like to do some exercises?"
 
     yield session.call("rie.dialogue.say_animated", text=question)
@@ -290,7 +294,6 @@ def ask_if_exercises(session, details, exercises, finished_interaction):
     yes = ["yes", "sure", "yeah", "ok", "definitely"] 
     no = ["no", "not really", "i don't want to"]
 
-
     if answer in yes:
         yield session.call("rie.dialogue.say_animated", text="Great! This is going to be fun!")
         exercises = True
@@ -302,7 +305,7 @@ def ask_if_exercises(session, details, exercises, finished_interaction):
         text = yield session.call("rie.dialogue.stt.read")
 
         response = text[-1]['data']['body']['text']
-        print("I heard ", response)
+        print(response)
 
         if response == "":
             response = text[-1]['data']['body']['text']
@@ -324,6 +327,7 @@ def ask_if_exercises(session, details, exercises, finished_interaction):
     return exercises, finished_interaction
 
 
+@inlineCallbacks
 def exercises_main(session, details):
 
     exercises = False
@@ -347,7 +351,7 @@ def exercises_main(session, details):
 @inlineCallbacks
 def main(session, details):
 
-    exercises_main(session, details)
+    yield exercises_main(session, details)
 
     session.leave()  
 

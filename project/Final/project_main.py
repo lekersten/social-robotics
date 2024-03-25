@@ -24,11 +24,13 @@ def main(session, details):
     yield session.call("rie.dialogue.config.language", lang="en")
     yield session.call("rie.dialogue.say", text="Hi there!")
 
-    # begin exercise process 
+    # begin exercise process - Lauren
     yield exercises_main(session, details)
 
+    # suggest user an activity - Yara
     yield suggest_activity(session, conn, date)
 
+    # answer user's question - Yara
     yield answer_question(session, details, conn, date)
 
     session.leave()

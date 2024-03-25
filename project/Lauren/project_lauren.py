@@ -2,13 +2,14 @@ from autobahn.twisted.component import Component, run
 from twisted.internet.defer import inlineCallbacks
 from autobahn.twisted.util import sleep
 
-from exercises import sitting_exercises, standing_exercises
+import exercises 
 
 reps = 3
+tired = False
 
 @inlineCallbacks
 def sign_off(session, details):
-    yield session.call("rie.dialogue.say", text="Great job today! I hope you are feeling better. I'll see you next time! Enjoy the rest of your day!")
+    yield session.call("rie.dialogue.say", text="Amazing job today! I hope you are feeling better. I'll see you next time! Enjoy the rest of your day!")
     
     finished_interaction = True
     
@@ -17,7 +18,7 @@ def sign_off(session, details):
 
 @inlineCallbacks   
 def ask_feeling(session, details):
-    question = "Great! Now that we're standing, how do you feel? Are you feeling good and want to continue or tired and want to stop?"
+    question = "Now that we're standing, how do you feel? Are you feeling good and want to continue or tired and want to stop?"
 
     yield session.call("rie.dialogue.say_animated", text=question)
 
@@ -107,6 +108,37 @@ def ask_if_sit_stand(session, details, position):
 
 
 @inlineCallbacks
+def get_ready_sitting(session, details):
+    yield session.call("rie.dialogue.say", text="Let's start by sitting down.")
+    yield session.call("rom.optional.behavior.play", name="BlocklySitDown")
+
+    ready = yield ask_if_sit_stand(session, details, "sitting")
+
+    if ready == True:
+        pass
+
+    else:
+        yield session.call("rie.dialogue.say", text="No problem! I will wait a bit longer")
+        yield sleep(5)
+
+        yield ask_if_ready(session, details)
+
+
+@inlineCallbacks
+def sitting_exercises(session, details):
+
+    yield exercises.leg_extensions(session, details, reps)
+    
+    yield sleep(2.5)
+    yield session.call("rie.dialogue.say", text="I hope youre feeling amazing! Let's move on.")
+    yield exercises.toe_reaches(session, details, reps)
+
+    yield sleep(2.5)
+    yield session.call("rie.dialogue.say", text="Great work! Let's do the last sitting exercise.")
+    yield exercises.twist_body(session, details, reps)
+
+
+@inlineCallbacks
 def get_ready_standing(session, details):
     yield session.call("rie.dialogue.say", text="You're doing great! Keep it up! And let's move onto standing exercises. Stand up when you're ready!")
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
@@ -124,45 +156,81 @@ def get_ready_standing(session, details):
 
 
 @inlineCallbacks
-def get_ready_sitting(session, details):
-    yield session.call("rie.dialogue.say", text="Let's start by sitting down.")
-    yield session.call("rom.optional.behavior.play", name="BlocklySitDown")
+def standing_exercises(session, details):
 
-    ready = yield ask_if_sit_stand(session, details, "sitting")
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
 
-    print(ready)
+    yield exercises.raise_arms(session, details, reps)
+    
+    yield sleep(2.5)
+    yield exercises.stretch_elbow(session, details, reps)
+    
+    yield sleep(2.5)
+    yield session.call("rie.dialogue.say", text="You're doing great! Now let's do some stretches for our necks.")
+    yield exercises.neck_exercises(session, details, reps)
 
-    if ready == True:
-        pass
-
-    else:
-        yield session.call("rie.dialogue.say", text="No problem! I will wait a bit longer")
-        yield sleep(5)
-
-        yield ask_if_ready(session, details)
+    yield sleep(2.5)
+    yield exercises.touch_toes(session, details, reps)
 
 
 @inlineCallbacks
 def do_exercises(session, details):
+    global reps, changed
+
+    @inlineCallbacks
+    def tired(frames):
+        global tired, reps
+
+        changed = False 
+        if frames['data']['body']['final']:
+            tired = ["tired", "t", "im tired", "I'm tired"]
+
+            if frames["data"]["body"]["text"] in tired:
+                print(frames["data"]["body"]["text"])
+                tired = True
+            
+        if tired == True:
+            if changed == False:
+                changed = True
+                print("User is tired.")
+                yield session.call("rie.dialogue.stt.close")
+
+                reps = max(round(reps / 2), 1)
+            
+                text = "I understand, you're tired. Let's only do " + str(reps) + "repetitions now."
+                yield session.call("rie.dialogue.say", text=text)
+                
+            print("Reduced reps to ", reps)
+
 
     # sitting exercises
     yield get_ready_sitting(session, details)
     yield session.call("rie.dialogue.say", text="Great! Now that we're sitting, let's start with some exercises.")
-    yield sitting_exercises(session, details, reps)
+
+    yield session.subscribe(tired, "rie.dialogue.stt.stream")
+    yield session.call("rie.dialogue.stt.stream")
+
+    yield sitting_exercises(session, details)
+
 
     # standing exercises
     yield sleep(2)
     user_feeling = yield ask_feeling(session, details)
     print(user_feeling)
+
     if user_feeling == "good":
         yield session.call("rie.dialogue.say", text="Great! Then let's continue with some more exercises.")
-        yield standing_exercises(session, details, reps)
+
+        yield session.call("rie.dialogue.stt.stream")
+        yield get_ready_standing(session, details)
+        yield standing_exercises(session, details)
+
         
         yield sleep(2)
         finished_interaction = yield sign_off(session, details)
 
     elif user_feeling == "tired":
-        yield session.call("rie.dialogue.say", text="I understand, you did great! Maybe next time we can do some more exercises. For now, let's take a break.")
+        yield session.call("rie.dialogue.say", text="I understand, you did great! Maybe next time we can do some more exercises. For now, let's take a break. I'll see you later")
         finished_interaction = True
 
     return finished_interaction
@@ -191,7 +259,7 @@ def ask_energy(session, details):
     tired = ["tired", "exhausted", "not good", "bad"]
 
     if answer in good:
-        yield session.call("rie.dialogue.say_animated", text="That's great to hear! Let's do 5 repetitions for each exercise!")
+        yield session.call("rie.dialogue.say_animated", text="That's nice to hear! Let's do 5 repetitions for each exercise!")
         reps = 5
 
     elif answer in tired:
@@ -201,8 +269,6 @@ def ask_energy(session, details):
     else:
         yield session.call("rie.dialogue.say_animated", text="Why don't we do 3 repetitions for each exercise?")
         reps = 3
-
-    return reps
 
 
 @inlineCallbacks
@@ -258,26 +324,7 @@ def ask_if_exercises(session, details, exercises, finished_interaction):
     return exercises, finished_interaction
 
 
-@inlineCallbacks
-def tired(frames):
-    global tired, reps
-
-    if frames['data']['body']['final']:
-        print(frames["data"]["body"]["text"])
-
-        tired = ["tired", "t", "im tired"]
-
-        if frames["data"]["body"]["text"] in tired:
-            tired = True
-        
-    if tired == True:
-        print("User is tired.")
-        reps = round(reps / 2)
-        print("Reduced reps to ", reps)
-        
-
-@inlineCallbacks
-def main(session, details):
+def exercises_main(session, details):
 
     exercises = False
     finished_interaction = False
@@ -290,11 +337,17 @@ def main(session, details):
 
     if exercises == True:
          # ask user energy to determine repetitions - default is 3
-        reps = yield ask_energy(session, details)
-        finished_interaction = yield do_exercises(session, details, reps)
+        yield ask_energy(session, details)
+        finished_interaction = yield do_exercises(session, details)
 
     while not finished_interaction:
         yield sleep(0.5)
+
+
+@inlineCallbacks
+def main(session, details):
+
+    exercises_main(session, details)
 
     session.leave()  
 

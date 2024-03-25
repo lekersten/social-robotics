@@ -2,6 +2,7 @@ from autobahn.twisted.component import Component, run
 from twisted.internet.defer import inlineCallbacks
 from autobahn.twisted.util import sleep
 
+
 @inlineCallbacks
 def leg_extensions(session, details, reps):
 
@@ -29,9 +30,10 @@ def leg_extensions(session, details, reps):
                     )     
 
 
+
 @inlineCallbacks
 def toe_reaches(session, details, reps):
-    yield session.call("rie.dialogue.say", text="Now let's reach for our toes. I will show you once and then we will do the rest together")
+    yield session.call("rie.dialogue.say", text="Now let's reach for our toes. I will show you once and then again we will do the rest together")
 
     yield session.call("rom.actuator.motor.write",
                     frames=[{"time": 1500, "data": {"body.legs.left.upper.pitch": -1.7, "body.legs.right.upper.pitch": -1.7, "body.arms.left.upper.pitch": -1, "body.arms.right.upper.pitch": -1}},
@@ -40,7 +42,7 @@ def toe_reaches(session, details, reps):
                         force=True
                     )
     
-    text = "Now let's do " + str(reps) + " together - count with me!"
+    text = "Let's do " + str(reps) + " together!"
     yield session.call("rie.dialogue.say", text=text)
 
     for i in range(reps):
@@ -59,7 +61,7 @@ def toe_reaches(session, details, reps):
 
 @inlineCallbacks
 def twist_body(session, details, reps):
-    yield session.call("rie.dialogue.say", text="Next were going to twist our body. I will show you once and then again we will do the rest together")
+    yield session.call("rie.dialogue.say", text="Next were going to twist our body. This will feel great! Like before, first I'll show you and then we can do the rest together")
 
     yield session.call("rom.actuator.motor.write",
                         frames=[{"time": 1500, "data": {"body.torso.yaw": -0.7, "body.arms.left.upper.pitch": -1, "body.arms.right.upper.pitch": -1}},
@@ -89,24 +91,8 @@ def twist_body(session, details, reps):
 
 
 @inlineCallbacks
-def sitting_exercises(session, details, reps):
-
-    yield leg_extensions(session, details, reps)
-    
-    yield sleep(2)
-    yield session.call("rie.dialogue.say", text="I hope youre feeling amazing! Now let's move on.")
-    yield toe_reaches(session, details, reps)
-
-    yield sleep(2)
-    yield session.call("rie.dialogue.say", text="Great work! Let's do the last sitting exercise.")
-    yield twist_body(session, details, reps)
-
-    pass
-
-
-@inlineCallbacks
 def raise_arms(session,  details, reps):
-    yield session.call("rie.dialogue.say", text="Let's begin with raising our arms one at a time. I will show you once and then again we will do the rest together")
+    yield session.call("rie.dialogue.say", text="Let's begin with raising our arms one at a time. I will show you and then again we will do the rest together")
 
     yield session.call("rom.actuator.motor.write",
                         frames=[{"time": 2000, "data": {"body.arms.left.upper.pitch": -2.4, "body.arms.right.upper.pitch": 0}},
@@ -116,7 +102,7 @@ def raise_arms(session,  details, reps):
                         force=True
                         )
     
-    text = "Now let's do " + str(reps) + " together - count with me!"
+    text = "Now let's do " + str(reps) + " together!"
     yield session.call("rie.dialogue.say", text=text)
 
     for i in range(reps):
@@ -129,7 +115,7 @@ def raise_arms(session,  details, reps):
                         force=True
                         )
         
-    yield session.call("rie.dialogue.say", text="Now let's raise both arms together and keep them here for a few seconds!")
+    yield session.call("rie.dialogue.say", text="Now let's raise both arms together and hold them here for a few seconds!")
     yield session.call("rom.actuator.motor.write",
                         frames=[{"time": 2000, "data": {"body.arms.left.upper.pitch": -2.4, "body.arms.right.upper.pitch": -2.4}},
                                 {"time": 6000, "data": {"body.arms.left.upper.pitch": -2.4, "body.arms.right.upper.pitch": -2.4}},
@@ -140,7 +126,7 @@ def raise_arms(session,  details, reps):
 
 @inlineCallbacks
 def stretch_elbow(session, details, reps):
-    yield session.call("rie.dialogue.say", text="Now let's stretch our elbows. I will show you once and then again we will do the rest together")
+    yield session.call("rie.dialogue.say", text="It's time to stretch our elbows. Watch me and then again we will do the rest together")
 
     yield session.call("rom.actuator.motor.write",
                         frames=[{"time": 2000, "data": {"body.arms.left.upper.pitch": -1.5, "body.arms.right.upper.pitch": -1.5}},],
@@ -171,7 +157,7 @@ def stretch_elbow(session, details, reps):
 
 @inlineCallbacks
 def neck_side_to_side(session, details, reps):
-    yield session.call("rie.dialogue.say", text="Let's slowly turn our heads from side to side. I will show you once and then again we will do the rest together")
+    yield session.call("rie.dialogue.say", text="Now let's carefully turn our heads from side to side. I will show you and then again we will do the rest together")
 
     yield session.call("rom.actuator.motor.write",
                     frames=[{"time": 3000, "data": {"body.head.yaw": 0.8}},
@@ -182,7 +168,7 @@ def neck_side_to_side(session, details, reps):
                     force=True
                     )
     
-    text = "Now let's do " + str(reps) + " together - count with me!"
+    text = "Now let's do " + str(reps) + " repetitions"
     yield session.call("rie.dialogue.say", text=text)
 
     for i in range(reps):
@@ -200,7 +186,7 @@ def neck_side_to_side(session, details, reps):
 @inlineCallbacks
 def tilt_head(session, details, reps):
 
-    yield session.call("rie.dialogue.say", text="Let's tilt our heads from side to side. Watch me and then we will do it together")
+    yield session.call("rie.dialogue.say", text="Now we will tilt our heads from side to side. Watch me and then we will do it together")
 
     yield session.call("rom.actuator.motor.write",
                     frames=[{"time": 3000, "data": {"body.head.roll": 0.17}},
@@ -209,7 +195,7 @@ def tilt_head(session, details, reps):
                     force=True
                     )
     
-    text = "Now let's do " + str(reps) + " together - count with me!"
+    text = "We will do " + str(reps) + " together!"
     yield session.call("rie.dialogue.say", text=text)
 
     for i in range(reps):
@@ -231,7 +217,7 @@ def tilt_head(session, details, reps):
 
 @inlineCallbacks
 def lift_head(session, details, reps):
-    yield session.call("rie.dialogue.say", text="Let's lift our heads up and down. I will show you once and then again we will do the rest together")
+    yield session.call("rie.dialogue.say", text="Let's lift our heads up and down. It will feel great! I will show you once and then again we will do the rest together")
 
     yield session.call("rom.actuator.motor.write",
                     frames=[{"time": 3000, "data": {"body.head.pitch": -0.17}},
@@ -240,7 +226,7 @@ def lift_head(session, details, reps):
                     force=True
                     )
     
-    text = "Now let's do " + str(reps) + " together - count with me!"
+    text = "Let's do this " + str(reps) + " times!"
     yield session.call("rie.dialogue.say", text=text)
 
     for i in range(reps):
@@ -273,30 +259,12 @@ def neck_exercises(session, details, reps):
 
 @inlineCallbacks
 def touch_toes(session, details, reps):
-    yield session.call("rie.dialogue.say", text="Let's try and touch out toes. I will show you once and then we can do two together")
+    yield session.call("rie.dialogue.say", text="Let's try and touch our toes. Watch me first!")
     yield session.call("rom.optional.behavior.play", name="BlocklyTouchToes")
 
-    text = "Now let's do " + str(reps) + " together - count with me!"
+    text = "Great! Let's do " + str(reps) + " together!"
     yield session.call("rie.dialogue.say", text=text)
 
     for i in range(reps):
         yield session.call("rie.dialogue.say", text=str(i + 1))
         yield session.call("rom.optional.behavior.play", name="BlocklyTouchToes")
-
-
-@inlineCallbacks
-def standing_exercises(session, details, reps):
-
-    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
-
-    yield raise_arms(session, details, reps)
-    
-    yield sleep(2)
-    yield stretch_elbow(session, details, reps)
-    
-    yield sleep(2)
-    yield session.call("rie.dialogue.say", text="You're doing great! Now let's stretch our neck carefully.")
-    yield neck_exercises(session, details, reps)
-
-    yield sleep(2)
-    yield touch_toes(session, details, reps)

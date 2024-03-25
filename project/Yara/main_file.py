@@ -24,9 +24,7 @@ def main(session, details):
     # prompt from the robot to indicate that it started
     yield session.call("rie.dialogue.say", text="Robot started!")
 
-    # TODO: function Lauren
-
-    # yield suggest_activity(session, conn, date)
+    yield suggest_activity(session, conn, date)
 
     yield answer_question(session, details, conn, date)
 

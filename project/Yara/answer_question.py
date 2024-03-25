@@ -6,15 +6,9 @@ from transformers import pipeline
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-import spacy
 
 from datetime import datetime
 from database_functions import create_connection, get_all_list_keywords, get_steps_for_list
-
-# Load English language model for spaCy
-nlp = spacy.load("en_core_web_sm")
-# nltk.download('stopwords')
-# nltk.download('averaged_perceptron_tagger')
 
 classifier = pipeline("text-classification", model="shahrukhx01/question-vs-statement-classifier")
 
@@ -30,7 +24,7 @@ def determine_if_question(statement):
     return is_question[0]["label"] == 'LABEL_1'
 
 
-def extract_topic(curr_question, tokens):
+def extract_topic(tokens):
     # Remove stopwords
     stop_words = set(stopwords.words('english'))
     filtered_tokens = [token for token in tokens if token not in stop_words]
@@ -38,19 +32,14 @@ def extract_topic(curr_question, tokens):
     # POS Tagging
     pos_tags = nltk.pos_tag(filtered_tokens)
 
-    # TODO: maybe remove entity part
-    # Named Entity Recognition
-    doc = nlp(curr_question)
-    entities = [(ent.text, ent.label_) for ent in doc.ents]
-
     # Topic extraction
     topics = []
     for token, pos in pos_tags:
         if pos.startswith('NN') or pos.startswith('VB'):
             topics.append(token)
 
-    print("topic: ", topics, entities)
-    return topics, entities
+    print("topic: ", topics)
+    return topics
 
 
 def asr(frames):
@@ -69,18 +58,21 @@ def asr(frames):
 
 @inlineCallbacks
 def get_specific_question_topic(session, details, keywords):
-    global last_sentence
+    global last_sentence, question
 
     yield session.call("rie.dialogue.stt.stream")
 
     while last_sentence == "":
+        print("Last sentence:", last_sentence)
         yield sleep(2)
 
     yield session.call("rie.dialogue.stt.close")
 
+    print("q:", question)
+    question = ""
+
     print("Previous sentence:", last_sentence)
-    # TODO: make sure whether replace functions are needed
-    for word in last_sentence.replace("?", "").replace(".", "").split(" "):
+    for word in last_sentence.split(" "):
         for idx, keyword in keywords:
             if word in keyword:
                 return idx
@@ -98,9 +90,10 @@ def get_question_topic(session, details, list_name, list):
         keyword = step[2].split(",")
         keywords.append((idx, keyword))
     print(keywords)
-    for topic in question_topics:
+
+    for word in question.split(" "):
         for idx, keyword in keywords:
-            if topic in keyword:
+            if word in keyword:
                 return idx
 
     answers = {"yes": ["yes", "sure", "yeah"], "no": ["no", "nope", "definitely not", "not now"]}
@@ -123,13 +116,12 @@ def get_question_topic(session, details, list_name, list):
 
     tries = 0
     while tries < 4:
+        print("New try")
         idx = yield get_specific_question_topic(session, details, keywords)
         print("IDX:", idx)
         if idx != -1:
             return idx
         tries += 1
-
-        # TODO: need to reopen/close dialogue stream to get response
 
     return -1
 
@@ -163,7 +155,7 @@ def answer_keyword_question(session, details, list_name, list_id, conn, date):
     list_part = yield get_question_topic(session, details, list_name, list)
     if list_part == -1:  # User doesn't want to talk about this topic
         return False
-    elif list_part == -2:
+    elif list_part == -2:  # user wants to know everything
         completed, unfinished, early, info = yield order_steps_in_list(list, date)
         if len(info) == 1:
             yield session.call("rie.dialogue.say_animated", text="I know that " + info[0] + ".")
@@ -193,9 +185,11 @@ def answer_keyword_question(session, details, list_name, list_id, conn, date):
 
     # Focus on the specific part that the question is about
     question_item = list[list_part]
+    print("qi:", question_item)
+    print(question_item[1], question_item[0])
 
     if question_item[1] == 3:
-        yield session.call("rie.dialogue.say_animated", text=question_item[1])
+        yield session.call("rie.dialogue.say_animated", text=question_item[0])
     elif question_item[1] == 1:
         yield session.call("rie.dialogue.say_animated", text="You are done with "+question_item[0] + ".")
     elif question_item[1] == 0:
@@ -203,9 +197,16 @@ def answer_keyword_question(session, details, list_name, list_id, conn, date):
             yield session.call("rie.dialogue.say_animated",
                                text="It is a bit too early to " + question_item[0] + ". Maybe you can do it later?")
         else:
-            yield session.call("rie.dialogue.say_animated", text="You could " + question_item[0] + " now. As it isn't done yet.")
+            yield session.call("rie.dialogue.say_animated",
+                               text="You could " + question_item[0] + " now. As it isn't done yet.")
 
-    # TODO: reset the robot to normal position
+    # reset the robot to a neutral position
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+    session.call("rom.actuator.motor.write",
+                 frames=[{"time": 1000, "data": {"body.head.pitch": 0, "body.head.yaw": 0}}],
+                 force=True
+                 )
+
     return True
 
 
@@ -244,7 +245,7 @@ def answer_question(session, details, conn, date):
             print("Start checking question")
             tokens = word_tokenize(question.lower())
 
-            question_topics, entities = extract_topic(question, tokens)
+            question_topics = extract_topic(tokens)
             question = ""
             is_answered = False
             for topic in question_topics:
@@ -254,6 +255,9 @@ def answer_question(session, details, conn, date):
                     if topic in keywords:
                         is_answered = yield answer_keyword_question(session, details, name, id, conn, date)
                         break
+
+            if not is_answered:
+                yield session.call("rie.dialogue.say_animated", text="Sorry, I don't know anything about that.")
             print("After question part")
 
             yield session.call("rie.dialogue.stt.stream")
@@ -268,7 +272,8 @@ def main(session, details):
     conn = create_connection(r"db\pythonsqlite.db")
     date = str(datetime.now())[:10]
     date = "2024-03-28"     # Both vacation and easter visit list
-    date = "2024-03-24"     # Too early to pack bags for vacation
+    # date = "2024-03-24"     # Too early to pack bags for vacation
+    yield session.call("rie.dialogue.say_animated", text="Robot started!")
     yield answer_question(session, details, conn, date)
     session.leave()
 
@@ -279,7 +284,7 @@ wamp = Component(
         "serializers": ["msgpack"],
         "max_retries": 0
     }],
-    realm="rie.65fc5b1da6c4715863c58d2a",
+    realm="rie.66014dc2a6c4715863c5a3eb",
 )
 
 wamp.on_join(main)

@@ -21,11 +21,10 @@ def main(session, details):
     # global date
     # date = "2024-03-28"
 
-    # set language to English (use 'nl' for Dutch)
     yield session.call("rie.dialogue.config.language", lang="en")
-    # prompt from the robot to indicate that it started
-    yield session.call("rie.dialogue.say", text="Robot started!")
+    yield session.call("rie.dialogue.say", text="Hi there!")
 
+    # begin exercise process 
     yield exercises_main(session, details)
 
     yield suggest_activity(session, conn, date)

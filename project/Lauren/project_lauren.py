@@ -4,11 +4,13 @@ from autobahn.twisted.util import sleep
 
 import exercises 
 
-reps = 3
+reps = 3 # default repetitions
 tired = False
 
 @inlineCallbacks
 def sign_off(session, details):
+
+    session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
     yield session.call("rie.dialogue.say", text="Amazing job today! I hope you are feeling better. I'll see you next time! Enjoy the rest of your day!")
     
     finished_interaction = True
@@ -18,7 +20,7 @@ def sign_off(session, details):
 
 @inlineCallbacks   
 def ask_feeling(session, details):
-    question = "Now that we're standing, how do you feel? Are you feeling good and want to continue or tired and want to stop?"
+    question = "Now that we're standing, how do you feel? Are you feeling good and want to continue or do you want to stop?"
 
     yield session.call("rie.dialogue.say_animated", text=question)
 
@@ -45,7 +47,6 @@ def ask_feeling(session, details):
         yield session.call("rie.dialogue.say_animated", text="I didn't quite catch that. I will ask again?")
         feeling = yield ask_feeling(session, details)
 
-    
     return feeling
 
 
@@ -129,11 +130,11 @@ def sitting_exercises(session, details):
 
     yield exercises.leg_extensions(session, details, reps)
     
-    yield sleep(2.5)
+    yield sleep(2)
     yield session.call("rie.dialogue.say", text="I hope youre feeling amazing! Let's move on.")
     yield exercises.toe_reaches(session, details, reps)
 
-    yield sleep(2.5)
+    yield sleep(2)
     yield session.call("rie.dialogue.say", text="Great work! Let's do the last sitting exercise.")
     yield exercises.twist_body(session, details, reps)
 
@@ -162,14 +163,14 @@ def standing_exercises(session, details):
 
     yield exercises.raise_arms(session, details, reps)
     
-    yield sleep(2.5)
+    yield sleep(2)
     yield exercises.stretch_elbow(session, details, reps)
     
-    yield sleep(2.5)
+    yield sleep(2)
     yield session.call("rie.dialogue.say", text="You're doing great! Now let's do some stretches for our necks.")
     yield exercises.neck_exercises(session, details, reps)
 
-    yield sleep(2.5)
+    yield sleep(2)
     yield exercises.touch_toes(session, details, reps)
 
 
@@ -291,7 +292,7 @@ def ask_if_exercises(session, details, exercises, finished_interaction):
         answer = text[-1]['data']['body']['text']
         print("This time I heard ", answer)
 
-    yes = ["yes", "sure", "yeah", "ok", "definitely"] 
+    yes = ["yes", "sure", "yeah", "ok", "definitely", "I would"] 
     no = ["no", "not really", "i don't want to"]
 
     if answer in yes:

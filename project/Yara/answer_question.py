@@ -38,7 +38,7 @@ def extract_topic(tokens):
         if pos.startswith('NN') or pos.startswith('VB'):
             topics.append(token)
 
-    print("topic: ", topics)
+    print("topics: ", topics)
     return topics
 
 
@@ -68,7 +68,7 @@ def get_specific_question_topic(session, details, keywords):
 
     yield session.call("rie.dialogue.stt.close")
 
-    print("q:", question)
+    # print("q:", question)
     question = ""
 
     print("Previous sentence:", last_sentence)
@@ -99,7 +99,7 @@ def get_question_topic(session, details, list_name, list):
     answers = {"yes": ["yes", "sure", "yeah"], "no": ["no", "nope", "definitely not", "not now"]}
     answer = yield session.call("rie.dialogue.ask", question="Do you want to talk about the " + list_name + "?",
                                 answers=answers)
-    print("A: ", answer)
+    # print("A: ", answer)
     if answer == "no":
         return -1
 
@@ -108,7 +108,7 @@ def get_question_topic(session, details, list_name, list):
 
     answer = yield session.call("rie.dialogue.ask", question="Is there something specific that you want to know?",
                                 answers=answers)
-    print("A: ", answer)
+    # print("A: ", answer)
     if answer == "no":
         return -2
 
@@ -116,9 +116,9 @@ def get_question_topic(session, details, list_name, list):
 
     tries = 0
     while tries < 4:
-        print("New try")
+        # print("New try")
         idx = yield get_specific_question_topic(session, details, keywords)
-        print("IDX:", idx)
+        # print("IDX:", idx)
         if idx != -1:
             return idx
         tries += 1
@@ -185,8 +185,7 @@ def answer_keyword_question(session, details, list_name, list_id, conn, date):
 
     # Focus on the specific part that the question is about
     question_item = list[list_part]
-    print("qi:", question_item)
-    print(question_item[1], question_item[0])
+    print("response:", question_item[0])
 
     if question_item[1] == 3:
         yield session.call("rie.dialogue.say_animated", text=question_item[0])

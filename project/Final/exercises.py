@@ -125,7 +125,7 @@ def raise_arms(session,  details, reps):
 
 @inlineCallbacks
 def stretch_elbow(session, details, reps):
-    yield session.call("rie.dialogue.say", text="It's time to stretch our elbows. Watch me and then again we will do the rest together")
+    yield session.call("rie.dialogue.say", text="It's time to stretch our elbows and get some circulation into our arms. Watch me and then again we will do the rest together")
 
     yield session.call("rom.actuator.motor.write",
                         frames=[{"time": 2000, "data": {"body.arms.left.upper.pitch": -1.5, "body.arms.right.upper.pitch": -1.5}},],

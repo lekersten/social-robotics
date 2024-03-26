@@ -191,6 +191,8 @@ def do_exercises(session, details):
                 tired = True
             
         if tired == True:
+            tired = False
+            
             if changed == False:
                 changed = True
                 print("User is tired.")

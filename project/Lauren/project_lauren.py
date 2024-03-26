@@ -191,6 +191,8 @@ def do_exercises(session, details):
                 tired = True
             
         if tired == True:
+            tired = False
+            
             if changed == False:
                 changed = True
                 print("User is tired.")
@@ -201,6 +203,7 @@ def do_exercises(session, details):
                 text = "I understand, you're tired. Let's only do " + str(reps) + "repetitions now."
                 yield session.call("rie.dialogue.say", text=text)
                 
+            
             print("Reduced reps to ", reps)
 
 
